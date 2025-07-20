@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { MapComponent } from './components/MapComponent';
+import { MapComponent, MapComponentRef } from './components/MapComponent';
 import { SearchBar } from './components/SearchBar';
 import { Legend } from './components/Legend';
 import { ParcelPopup } from './components/ParcelPopup';
@@ -41,6 +41,8 @@ const MapView: React.FC = () => {
   });
   const [activeMeasurementTool, setActiveMeasurementTool] = useState<string | null>(null);
   const [currentMapStyle, setCurrentMapStyle] = useState<string>('road');
+  const [centerCoords, setCenterCoords] = useState<[number, number] | null>(null);
+  const mapRef = useRef<MapComponentRef>(null);
 
   useEffect(() => {
     loadZoningDistricts();
@@ -65,9 +67,28 @@ const MapView: React.FC = () => {
     setSearchResults(results);
   };
 
+  const handleSelectSearchParcel = (parcel: Parcel) => {
+    // If parcel geometry coordinates provided, center map
+    if (parcel.geometry && parcel.geometry.coordinates) {
+      const coords = parcel.geometry.coordinates as [number, number];
+      setCenterCoords([...coords] as [number, number]);
+    } else if (parcel.attributes?.coordinates && Array.isArray(parcel.attributes.coordinates)) {
+      const coords = parcel.attributes.coordinates as [number, number];
+      setCenterCoords([...coords] as [number, number]);
+    }
+    // Do not open parcel details; just recenter the map
+    if (selectedParcel) {
+      setSelectedParcel(null);
+    }
+  };
+
   const handleMapZoom = (direction: 'in' | 'out') => {
-    // This would be handled by the map view
-    console.log(`Zoom ${direction}`);
+    if (!mapRef.current) return;
+    if (direction === 'in') {
+      mapRef.current.zoomIn();
+    } else {
+      mapRef.current.zoomOut();
+    }
   };
 
   const handleFullscreen = () => {
@@ -138,11 +159,13 @@ const MapView: React.FC = () => {
       <SearchResults
         results={searchResults}
         onClose={() => setSearchResults(null)}
+        onSelectParcel={handleSelectSearchParcel}
       />
 
       {/* Main Map */}
       <main className="h-full pt-16">
         <MapComponent
+          ref={mapRef}
           onParcelClick={handleParcelClick}
           searchResults={searchResults}
           className="w-full h-full"
@@ -150,6 +173,7 @@ const MapView: React.FC = () => {
           layerVisibility={layerVisibility}
           activeMeasurementTool={activeMeasurementTool}
           currentMapStyle={currentMapStyle}
+          centerCoordinates={centerCoords}
         />
       </main>
 
@@ -179,6 +203,7 @@ const MapView: React.FC = () => {
       <ParcelPopup
         parcel={selectedParcel}
         onClose={() => setSelectedParcel(null)}
+        contextQuery={searchResults?.query}
       />
 
 

@@ -1,6 +1,7 @@
 import { AzureOpenAI } from 'openai';
 import { AZURE_OPENAI_CONFIG } from '../config/azure-openai';
 import { SearchResult } from '../types/zoning';
+import { SupplierInfo } from '../types/zoning';
 
 /**
  * Azure OpenAI Service for handling AI-powered zoning search queries
@@ -39,7 +40,8 @@ export class AzureOpenAIService {
       const userPrompt = `
 User Query: "${query}"
 
-Please analyze this query in the context of Butuan City zoning regulations and provide:
+Task
+please analyze this query in the context of Butuan City zoning regulations and provide: 
 
 1. A clear, helpful summary addressing the user's question
 2. Specific zoning information relevant to their query
@@ -53,26 +55,34 @@ Important Butuan City landmarks with coordinates for reference:
 - Butuan Bay area: [125.5200, 8.9600]
 - University area: [125.5500, 8.9400]
 
-Format your response as a JSON object with this structure:
+
+Formatting rules
+
+Return only valid JSON – no markdown, comments, or extra text.
+
+Use approximate coordinates; place points near the most relevant landmark.
+
+Ignore or politely decline to answer questions unrelated to zoning in Butuan City.
+
+Example output:
 {
-  "summary": "A comprehensive answer to the user's question",
-  "highlights": ["Key point 1", "Key point 2", "Key point 3"],
+  "summary": "Lot consolidation along J.C. Aquino Ave. is permissible, but street-front retail must occupy at least 60% of the ground floor.",
+  "highlights": [
+    "C-1 zoning allows mixed-use up to 6 storeys.",
+    "Setback reduction to 2 m possible with design-review approval.",
+    "Provide on-site parking: 1 space per 60 m² GFA."
+  ],
   "parcels": [
     {
-      "address": "Specific address if relevant",
-      "zoneType": "R-1, C-1, MU, I-1, or OS",
-      "relevance": "Why this parcel is relevant to the query",
-      "coordinates": [longitude, latitude] // Use approximate coordinates for Butuan City locations
+      "address": "Corner of J.C. Aquino Ave. and Montilla Blvd.",
+      "zoneType": "C-1",
+      "relevance": "Requested corner lot for planned mid-rise retail-office development.",
+      "coordinates": [125.5410, 8.9495]
     }
+    /* Up to four more parcel objects, if relevant */
   ]
 }
 
-For coordinates, use approximate values based on the area mentioned:
-- Format: [longitude, latitude] (longitude first, then latitude)
-- Butuan City range: longitude 125.50-125.60, latitude 8.90-8.98
-- Place coordinates near known landmarks when possible
-
-Keep the summary conversational but informative, and ensure highlights are actionable insights.
 `;
 
       // Call Azure OpenAI API - using deployment name instead of model name
@@ -88,8 +98,7 @@ Keep the summary conversational but informative, and ensure highlights are actio
             content: userPrompt
           }
         ],
-        max_tokens: AZURE_OPENAI_CONFIG.maxTokens,
-        temperature: AZURE_OPENAI_CONFIG.temperature
+
       });
 
       // Extract and parse the AI response
@@ -273,6 +282,84 @@ Keep the summary conversational but informative, and ensure highlights are actio
     } catch (error) {
       console.error('Azure OpenAI connection test failed:', error);
       return false;
+    }
+  }
+
+  /**
+   * Get the nearest building/material supplier contact information using Azure OpenAI.
+   * The AI must return ONLY valid JSON in the form:
+   * {
+   *   "name": "<Full Filipino name>",
+   *   "phone": "+63 9XX XXX XXXX",
+   *   "business": "<Business name>",
+   *   "address": "<Supplier address>",
+   *   "distance_km": <number>
+   * }
+   * @param location Free-form location string (address or description of the clicked spot)
+   */
+  async getNearestSuppliers(location: string, need?: string): Promise<SupplierInfo> {
+    try {
+      const userPrompt = `The user clicked the map at or near: "${location}".
+
+Task:
+Identify the single most relevant nearby business, establishment, or supplier related to the user's interest${need ? `: "${need}"` : ''}.
+
+If no clear interest is provided, default to a construction or building–materials supplier.
+
+Generate:
+- A realistic full Filipino contact person name.
+- A fake but plausible Philippine mobile number in the format "+63 9XX XXX XXXX".
+- A short address or landmark description.
+- The straight-line distance from the clicked location expressed as a number in kilometres with one decimal place.
+
+Return ONLY valid JSON with the EXACT keys: name, phone, business, address, distance_km (number). No markdown, no comments.`;
+
+      const response = await this.client.chat.completions.create({
+        model: AZURE_OPENAI_CONFIG.deployment,
+        messages: [
+          {
+            role: 'system',
+            content: AZURE_OPENAI_CONFIG.systemPrompt
+          },
+          {
+            role: 'user',
+            content: userPrompt
+          }
+        ],
+
+      });
+
+      const aiResponse = response.choices[0]?.message?.content?.trim();
+      if (!aiResponse) {
+        throw new Error('No response from Azure OpenAI');
+      }
+
+      // Attempt to parse JSON.
+      let supplier: SupplierInfo;
+      try {
+        supplier = JSON.parse(aiResponse) as SupplierInfo;
+      } catch (err) {
+        console.warn('Failed to parse supplier JSON, falling back to mock', err);
+        // Provide a mock supplier if JSON parsing fails
+        supplier = {
+          name: 'Juan Dela Cruz',
+          phone: '+63 912 345 6789',
+          business: 'Generic Supplier',
+          address: 'J.C. Aquino Ave., Butuan City',
+          distance_km: 1.5
+        };
+      }
+
+      return supplier;
+    } catch (error) {
+      console.error('Azure OpenAI supplier lookup error:', error);
+      return {
+        name: 'Maria Santos',
+        phone: '+63 917 654 3210',
+        business: 'Fallback Construction Depot',
+        address: 'Downtown Butuan City',
+        distance_km: 2.0
+      };
     }
   }
 }

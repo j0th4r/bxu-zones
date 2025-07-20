@@ -1,13 +1,44 @@
 import React from 'react';
-import {X, Building, MapPin, Info} from 'lucide-react';
+import {X, Building, MapPin, Info, Loader2, Phone} from 'lucide-react';
 import {Parcel} from '../types/zoning';
+import { SupplierInfo } from '../types/zoning';
+import { ZoningAPI } from '../utils/api';
 
 interface ParcelPopupProps {
   parcel: Parcel | null;
   onClose: () => void;
+  contextQuery?: string;
 }
 
-export const ParcelPopup: React.FC<ParcelPopupProps> = ({parcel, onClose}) => {
+export const ParcelPopup: React.FC<ParcelPopupProps> = ({parcel, onClose, contextQuery = ''}) => {
+  const [supplier, setSupplier] = React.useState<SupplierInfo | null>(null);
+  const [loadingSupplier, setLoadingSupplier] = React.useState(false);
+
+  // Fetch supplier info whenever a new parcel is selected
+  React.useEffect(() => {
+    let cancelled = false;
+    const fetchSupplier = async () => {
+      if (!parcel) return;
+      setLoadingSupplier(true);
+      setSupplier(null);
+      try {
+        const info = await ZoningAPI.getNearestSuppliers(parcel.address, contextQuery);
+        if (!cancelled) {
+          setSupplier(info);
+        }
+      } catch (err) {
+        console.error('Supplier lookup error:', err);
+      } finally {
+        if (!cancelled) setLoadingSupplier(false);
+      }
+    };
+    fetchSupplier();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [parcel]);
+
   if (!parcel) return null;
 
   return (
@@ -64,6 +95,30 @@ export const ParcelPopup: React.FC<ParcelPopupProps> = ({parcel, onClose}) => {
               </div>
             </div>
           )}
+
+          {/* Supplier info section */}
+          <div className="pt-4 border-t border-gray-700">
+            <label className="text-gray-400 block mb-2">Nearest Supplier Contact</label>
+            {loadingSupplier ? (
+              <div className="flex items-center space-x-2 text-gray-300 text-sm">
+                <Loader2 className="animate-spin" size={16} />
+                <span>Fetching supplier information...</span>
+              </div>
+            ) : supplier ? (
+              <div className="space-y-1 text-white text-sm">
+                <div className="flex items-center space-x-2">
+                  <Phone size={14} className="text-yellow-400" />
+                  <span className="font-semibold">{supplier.name}</span>
+                </div>
+                <p>Business: {supplier.business}</p>
+                <p>Phone: <a href={`tel:${supplier.phone.replace(/\s+/g, '')}`} className="underline">{supplier.phone}</a></p>
+                <p>Address: {supplier.address}</p>
+                <p>Approx. Distance: {supplier.distance_km.toFixed(1)} km</p>
+              </div>
+            ) : (
+              <p className="text-gray-400 text-sm">No supplier data available.</p>
+            )}
+          </div>
 
           <div className="flex items-center space-x-2 text-xs text-gray-400 pt-2 border-t border-gray-700">
             <Info size={14} />

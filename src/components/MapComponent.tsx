@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, forwardRef, useImperativeHandle} from 'react';
 import {ZoningDistrict, Parcel} from '../types/zoning';
 import {ZoningAPI} from '../utils/api';
 import {AZURE_MAPS_CONFIG} from '../config/azure-maps';
@@ -19,9 +19,10 @@ interface MapComponentProps {
   layerVisibility?: Record<string, boolean>;
   activeMeasurementTool?: string | null;
   currentMapStyle?: string;
+  centerCoordinates?: [number, number] | null;
 }
 
-export const MapComponent: React.FC<MapComponentProps> = ({
+export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>( ({
   onParcelClick,
   searchResults,
   className = '',
@@ -29,7 +30,8 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   layerVisibility = {},
   activeMeasurementTool,
   currentMapStyle = 'road',
-}) => {
+  centerCoordinates = null,
+}: MapComponentProps, ref) => {
   const [zoningDistricts, setZoningDistricts] = useState<ZoningDistrict[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [mapReady, setMapReady] = useState(false);
@@ -88,6 +90,17 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     }
   }, [currentMapStyle]);
 
+  // Center map when centerCoordinates changes
+  useEffect(() => {
+    if (mapInstance.current && centerCoordinates) {
+      mapInstance.current.setCamera({
+        center: centerCoordinates,
+        zoom: 16,
+        duration: 800,
+      });
+    }
+  }, [centerCoordinates]);
+
   // Handle search results with coordinates
   useEffect(() => {
     if (mapInstance.current && searchDataSource.current && searchResults) {
@@ -124,6 +137,26 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       }
     }
   }, [searchResults]);
+
+  // expose zoom methods to parent
+  useImperativeHandle(ref, () => ({
+    zoomIn: () => {
+      if (mapInstance.current) {
+        mapInstance.current.setCamera({
+          zoom: mapInstance.current.getCamera().zoom + 1,
+          duration: 300,
+        });
+      }
+    },
+    zoomOut: () => {
+      if (mapInstance.current) {
+        mapInstance.current.setCamera({
+          zoom: mapInstance.current.getCamera().zoom - 1,
+          duration: 300,
+        });
+      }
+    }
+  }));
 
   const initializeMap = () => {
     if (mapRef.current && subscriptionKey && window.atlas) {
@@ -212,13 +245,25 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             (e: any) => {
               if (e.shapes && e.shapes.length > 0) {
                 const shape = e.shapes[0];
-                const properties = shape.getProperties();
+
+                // Support both atlas.Shape instances and raw GeoJSON features
+                const getShapeProperties = () =>
+                  typeof (shape as any).getProperties === 'function'
+                    ? (shape as any).getProperties()
+                    : (shape as any).properties || {};
+
+                const getShapeGeometry = () =>
+                  typeof (shape as any).getGeometry === 'function'
+                    ? (shape as any).getGeometry()
+                    : (shape as any).geometry || null;
+
+                const properties = getShapeProperties();
 
                 const searchParcel: Parcel = {
                   id: properties.id || 'search-result',
                   address: properties.address || 'Search Result',
                   zoneId: properties.zoneType || 'AI Search',
-                  geometry: shape.getGeometry(),
+                  geometry: getShapeGeometry(),
                   attributes: {
                     relevance: properties.relevance || 'AI search result',
                     source: properties.source || 'AI Analysis',
@@ -237,7 +282,13 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             (e: any) => {
               if (e.shapes && e.shapes.length > 0) {
                 const shape = e.shapes[0];
-                const properties = shape.getProperties();
+
+                const getShapeProperties = () =>
+                  typeof (shape as any).getProperties === 'function'
+                    ? (shape as any).getProperties()
+                    : (shape as any).properties || {};
+
+                const properties = getShapeProperties();
 
                 const mockParcel: Parcel = {
                   id: properties.id || 'unknown',
@@ -625,4 +676,9 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       )}
     </div>
   );
+});
+
+export type MapComponentRef = {
+  zoomIn: () => void;
+  zoomOut: () => void;
 };

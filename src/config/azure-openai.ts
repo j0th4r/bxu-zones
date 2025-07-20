@@ -13,10 +13,8 @@ export const AZURE_OPENAI_CONFIG = {
   modelName: import.meta.env.VITE_AZURE_OPENAI_MODEL || 'o4-mini',
 
   // AI search parameters
-  // maxTokens: parseInt(import.meta.env.VITE_AZURE_OPENAI_MAX_TOKENS || '4096'),
-  // temperature: parseFloat(
-  //   import.meta.env.VITE_AZURE_OPENAI_TEMPERATURE || '0.7'
-  // ),
+  // maxTokens: parseInt(import.meta.env.VITE_AZURE_OPENAI_MAX_TOKENS || '1024'),
+  // temperature: parseFloat(import.meta.env.VITE_AZURE_OPENAI_TEMPERATURE || '0.7'),
 
   // Environment settings
   useBackendProxy: false, // Set to true only when you have a backend API set up

@@ -5,11 +5,13 @@ import {SearchResult} from '../types/zoning';
 interface SearchResultsProps {
   results: SearchResult | null;
   onClose: () => void;
+  onSelectParcel?: (parcel: any) => void;
 }
 
 export const SearchResults: React.FC<SearchResultsProps> = ({
   results,
   onClose,
+  onSelectParcel,
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
 
@@ -70,7 +72,8 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                   {results.results.parcels.map((parcel) => (
                     <div
                       key={parcel.id}
-                      className="space-y-1 p-2 bg-gray-700/50 rounded border-l-2 border-blue-400"
+                      onClick={() => onSelectParcel?.(parcel)}
+                      className="space-y-1 p-2 bg-gray-700/50 rounded border-l-2 border-blue-400 cursor-pointer hover:bg-gray-600/70 transition-colors"
                     >
                       <div className="text-xs text-gray-300 font-medium break-words">
                         {parcel.address}

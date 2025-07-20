@@ -41,4 +41,8 @@ export class ZoningAPI {
       lastUpdated: '2025-07-18',
     };
   }
+
+  static async getNearestSuppliers(location: string, need?: string) {
+    return await azureOpenAIService.getNearestSuppliers(location, need);
+  }
 }
