@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Zoning Code Administration Portal</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .icon {
+            width: 20px;
+            height: 20px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+        }
+        .icon-lg {
+            width: 32px;
+            height: 32px;
+        }
+        .icon-xl {
+            width: 48px;
+            height: 48px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Navigation Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>Zoning Code Administration</h2>
+            </div>
+            
+            <!-- User Account Section -->
+            <div class="user-account">
+                <div class="user-profile" id="user-profile">
+                    <div class="user-avatar">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%234f46e5'/%3E%3Ctext x='50' y='60' font-family='Arial, sans-serif' font-size='36' font-weight='bold' text-anchor='middle' fill='white'%3EAU%3C/text%3E%3C/svg%3E" alt="User Avatar">
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">Admin User</div>
+                        <div class="user-email">admin@planning.nyc.gov</div>
+                    </div>
+                    <div class="user-dropdown-toggle">
+                        <svg class="icon icon-sm" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="user-dropdown" id="user-dropdown">
+                    <a href="#" class="dropdown-item">
+                        <svg class="icon icon-sm" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
+                        </svg>
+                        Profile
+                    </a>
+                    <a href="#" class="dropdown-item">
+                        <svg class="icon icon-sm" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        Settings
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" class="dropdown-item logout-item">
+                        <svg class="icon icon-sm" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/>
+                        </svg>
+                        Log out
+                    </a>
+                </div>
+            </div>
+            
+            <ul class="nav-list">
+                <li><a href="dashboard.html" class="nav-link active">Dashboard</a></li>
+                <li><a href="zoning-code.html" class="nav-link">Zoning Code</a></li>
+                <li><a href="regulations.html" class="nav-link">Regulations</a></li>
+                <li><a href="faqs.html" class="nav-link">FAQs</a></li>
+                <li><a href="import.html" class="nav-link">Import</a></li>
+                <li><a href="ai-settings.html" class="nav-link">AI Settings</a></li>
+                <li><a href="users.html" class="nav-link">Users</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <button class="return-btn">Return to Map</button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="content-container">
+            <div class="page active">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <div class="tab-nav">
+                        <button class="tab-btn active" data-tab="overview">Overview</button>
+                        <button class="tab-btn" data-tab="analytics">Analytics</button>
+                        <button class="tab-btn" data-tab="reports">Reports</button>
+                    </div>
+                </div>
+
+                <!-- Overview Tab -->
+                <div id="tab-overview" class="dashboard-tab-content" style="display: block;">
+                    <div class="cards-grid">
+                        <div class="dashboard-card" data-link="zoning-code">
+                            <div class="card-icon">
+                                <svg class="icon icon-lg" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/>
+                                </svg>
+                            </div>
+                            <div class="card-content">
+                                <h3>Zoning Code</h3>
+                                <div class="card-stat">4 Chapters</div>
+                                <div class="card-updated">Last updated 2 days ago</div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-card" data-link="regulations">
+                            <div class="card-icon">
+                                <svg class="icon icon-lg" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/>
+                                </svg>
+                            </div>
+                            <div class="card-content">
+                                <h3>Zoning Regulations</h3>
+                                <div class="card-stat">32 Regulations</div>
+                                <div class="card-updated">Last updated 5 hours ago</div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-card" data-link="faqs">
+                            <div class="card-icon">
+                                <svg class="icon icon-lg" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"/>
+                                </svg>
+                            </div>
+                            <div class="card-content">
+                                <h3>Zoning FAQs</h3>
+                                <div class="card-stat">128 FAQs</div>
+                                <div class="card-updated">Last updated yesterday</div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-card" data-link="import">
+                            <div class="card-icon">
+                                <svg class="icon icon-lg" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+                                </svg>
+                            </div>
+                            <div class="card-content">
+                                <h3>Import Zoning Code</h3>
+                                <div class="card-stat">AI-Powered</div>
+                                <div class="card-updated">Import from PDF, Word, or HTML</div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-card" data-link="users">
+                            <div class="card-icon">
+                                <svg class="icon icon-lg" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
+                                </svg>
+                            </div>
+                            <div class="card-content">
+                                <h3>Users</h3>
+                                <div class="card-stat">12 Users</div>
+                                <div class="card-updated">3 active now</div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-card" data-link="ai-settings">
+                            <div class="card-icon">
+                                <svg class="icon icon-lg" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                            </div>
+                            <div class="card-content">
+                                <h3>AI Settings</h3>
+                                <div class="card-stat">Configured</div>
+                                <div class="card-updated">Using GPT-4o model</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stats-section">
+                        <div class="ai-queries-card">
+                            <h3>AI Queries</h3>
+                            <div class="query-stats">
+                                <div class="stat-number">+573</div>
+                                <div class="stat-change">+201 from last week</div>
+                            </div>
+                        </div>
+
+                        <div class="activity-section">
+                            <h3>Recent Activity</h3>
+                            <div class="activity-list">
+                                <div class="activity-item">
+                                    <div class="activity-text">Updated C5-3 zoning regulation</div>
+                                    <div class="activity-meta">John Smith • 2 hours ago</div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-text">Added new FAQ for R8B height limits</div>
+                                    <div class="activity-meta">Sarah Johnson • 5 hours ago</div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-text">Imported zoning code from PDF document</div>
+                                    <div class="activity-meta">Michael Brown • Yesterday</div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-text">Added new section to Chapter 32</div>
+                                    <div class="activity-meta">Emily Davis • 2 days ago</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="popular-queries">
+                            <h3>Popular AI Queries</h3>
+                            <div class="query-subtitle">Most frequent user questions this week</div>
+                            <div class="query-list">
+                                <div class="query-item">
+                                    <div class="query-text">"What can I build in Midtown?"</div>
+                                    <div class="query-count">87 queries</div>
+                                </div>
+                                <div class="query-item">
+                                    <div class="query-text">"What is the height limit in R8B?"</div>
+                                    <div class="query-count">64 queries</div>
+                                </div>
+                                <div class="query-item">
+                                    <div class="query-text">"Can I build residential in M1-5?"</div>
+                                    <div class="query-count">52 queries</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Tab -->
+                <div id="tab-analytics" class="dashboard-tab-content" style="display: none;">
+                    <div class="analytics-header">
+                        <h2>Analytics</h2>
+                        <p>View usage statistics and trends</p>
+                    </div>
+                    
+                    <div class="analytics-content">
+                        <!-- AI Query Trends Chart -->
+                        <div class="chart-section">
+                            <h3>AI Query Trends</h3>
+                            <p>Weekly AI query volume over the past 8 weeks</p>
+                            <div class="line-chart">
+                                <div class="chart-y-axis">
+                                    <span>600</span>
+                                    <span>500</span>
+                                    <span>400</span>
+                                    <span>300</span>
+                                    <span>200</span>
+                                    <span>100</span>
+                                    <span>0</span>
+                                </div>
+                                <div class="chart-area">
+                                    <div class="chart-grid"></div>
+                                    <svg class="line-chart-svg" viewBox="0 0 400 200">
+                                        <polyline points="0,160 50,140 100,120 150,100 200,80 250,70 300,50 350,30" 
+                                                  fill="none" stroke="#4f46e5" stroke-width="3"/>
+                                        <circle cx="0" cy="160" r="4" fill="#4f46e5"/>
+                                        <circle cx="50" cy="140" r="4" fill="#4f46e5"/>
+                                        <circle cx="100" cy="120" r="4" fill="#4f46e5"/>
+                                        <circle cx="150" cy="100" r="4" fill="#4f46e5"/>
+                                        <circle cx="200" cy="80" r="4" fill="#4f46e5"/>
+                                        <circle cx="250" cy="70" r="4" fill="#4f46e5"/>
+                                        <circle cx="300" cy="50" r="4" fill="#4f46e5"/>
+                                        <circle cx="350" cy="30" r="4" fill="#4f46e5"/>
+                                    </svg>
+                                </div>
+                                <div class="chart-x-axis">
+                                    <span>Week 1</span>
+                                    <span>Week 2</span>
+                                    <span>Week 3</span>
+                                    <span>Week 4</span>
+                                    <span>Week 5</span>
+                                    <span>Week 6</span>
+                                    <span>Week 7</span>
+                                    <span>Week 8</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Query Categories Chart -->
+                        <div class="chart-section">
+                            <h3>Query Categories</h3>
+                            <p>Distribution of AI queries by category this month</p>
+                            <div class="pie-chart-container">
+                                <div class="pie-chart">
+                                    <div class="pie-slice pie-slice-1" style="--percentage: 35"></div>
+                                    <div class="pie-slice pie-slice-2" style="--percentage: 25"></div>
+                                    <div class="pie-slice pie-slice-3" style="--percentage: 20"></div>
+                                    <div class="pie-slice pie-slice-4" style="--percentage: 20"></div>
+                                </div>
+                                <div class="pie-legend">
+                                    <div class="legend-item">
+                                        <div class="legend-color legend-color-1"></div>
+                                        <span>Zoning Regulations (35%)</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color legend-color-2"></div>
+                                        <span>Building Codes (25%)</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color legend-color-3"></div>
+                                        <span>Height Limits (20%)</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color legend-color-4"></div>
+                                        <span>Use Permissions (20%)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- User Activity Chart -->
+                        <div class="chart-section">
+                            <h3>User Activity</h3>
+                            <p>Daily active users over the past week</p>
+                            <div class="bar-chart">
+                                <div class="bar-chart-container">
+                                    <div class="bar" style="height: 60%">
+                                        <div class="bar-value">18</div>
+                                        <div class="bar-label">Mon</div>
+                                    </div>
+                                    <div class="bar" style="height: 80%">
+                                        <div class="bar-value">24</div>
+                                        <div class="bar-label">Tue</div>
+                                    </div>
+                                    <div class="bar" style="height: 70%">
+                                        <div class="bar-value">21</div>
+                                        <div class="bar-label">Wed</div>
+                                    </div>
+                                    <div class="bar" style="height: 90%">
+                                        <div class="bar-value">27</div>
+                                        <div class="bar-label">Thu</div>
+                                    </div>
+                                    <div class="bar" style="height: 85%">
+                                        <div class="bar-value">25</div>
+                                        <div class="bar-label">Fri</div>
+                                    </div>
+                                    <div class="bar" style="height: 40%">
+                                        <div class="bar-value">12</div>
+                                        <div class="bar-label">Sat</div>
+                                    </div>
+                                    <div class="bar" style="height: 35%">
+                                        <div class="bar-value">10</div>
+                                        <div class="bar-label">Sun</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Performance Metrics -->
+                        <div class="chart-section">
+                            <h3>Performance Metrics</h3>
+                            <p>System performance indicators</p>
+                            <div class="metrics-grid">
+                                <div class="metric-card">
+                                    <div class="metric-value">1.2s</div>
+                                    <div class="metric-label">Avg Response Time</div>
+                                    <div class="metric-change positive">↓ 15% from last week</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">99.8%</div>
+                                    <div class="metric-label">System Uptime</div>
+                                    <div class="metric-change positive">↑ 0.2% from last week</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">94.5%</div>
+                                    <div class="metric-label">Query Accuracy</div>
+                                    <div class="metric-change positive">↑ 2.1% from last week</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">156</div>
+                                    <div class="metric-label">Daily Avg Queries</div>
+                                    <div class="metric-change positive">↑ 23% from last week</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports Tab -->
+                <div id="tab-reports" class="dashboard-tab-content" style="display: none;">
+                    <div class="reports-header">
+                        <h2>Reports</h2>
+                        <p>View and generate system reports</p>
+                    </div>
+                    
+                    <div class="reports-content">
+                        <!-- Report Generation Section -->
+                        <div class="report-generator">
+                            <h3>Generate New Report</h3>
+                            <p>Create custom reports based on your requirements</p>
+                            <div class="report-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Report Type</label>
+                                        <select class="form-select">
+                                            <option>AI Usage Summary</option>
+                                            <option>User Activity Report</option>
+                                            <option>System Performance</option>
+                                            <option>Zoning Code Analytics</option>
+                                            <option>Query Trends Analysis</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Date Range</label>
+                                        <select class="form-select">
+                                            <option>Last 7 Days</option>
+                                            <option>Last 30 Days</option>
+                                            <option>Last 3 Months</option>
+                                            <option>Last 6 Months</option>
+                                            <option>Custom Range</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button class="primary-btn">
+                                    <svg class="icon icon-sm" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c0 .621-.504 1.125-1.125 1.125H11.25a1.125 1.125 0 01-1.125-1.125V11.625c0-1.036-.84-1.875-1.875-1.875H5.625c-.621 0-1.125.504-1.125 1.125v2.25"/>
+                                    </svg>
+                                    Generate Report
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Recent Reports -->
+                        <div class="recent-reports">
+                            <h3>Recent Reports</h3>
+                            <p>Previously generated reports and scheduled reports</p>
+                            <div class="reports-table">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Report Name</th>
+                                            <th>Type</th>
+                                            <th>Date Range</th>
+                                            <th>Generated</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Weekly AI Usage Summary</td>
+                                            <td>AI Usage</td>
+                                            <td>Mar 22 - Mar 29, 2025</td>
+                                            <td>Mar 29, 2025 9:00 AM</td>
+                                            <td><span class="status-badge status-completed">Completed</span></td>
+                                            <td>
+                                                <button class="action-btn" title="Download">
+                                                    <svg class="icon icon-sm" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                                                    </svg>
+                                                </button>
+                                                <button class="action-btn" title="View">
+                                                    <svg class="icon icon-sm" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>User Activity Report</td>
+                                            <td>User Activity</td>
+                                            <td>Mar 1 - Mar 29, 2025</td>
+                                            <td>Mar 28, 2025 3:30 PM</td>
+                                            <td><span class="status-badge status-completed">Completed</span></td>
+                                            <td>
+                                                <button class="action-btn" title="Download">
+                                                    <svg class="icon icon-sm" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                                                    </svg>
+                                                </button>
+                                                <button class="action-btn" title="View">
+                                                    <svg class="icon icon-sm" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>System Performance Report</td>
+                                            <td>Performance</td>
+                                            <td>Mar 15 - Mar 29, 2025</td>
+                                            <td>Mar 27, 2025 11:45 AM</td>
+                                            <td><span class="status-badge status-completed">Completed</span></td>
+                                            <td>
+                                                <button class="action-btn" title="Download">
+                                                    <svg class="icon icon-sm" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                                                    </svg>
+                                                </button>
+                                                <button class="action-btn" title="View">
+                                                    <svg class="icon icon-sm" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Quarterly Zoning Analytics</td>
+                                            <td>Zoning Analytics</td>
+                                            <td>Jan 1 - Mar 31, 2025</td>
+                                            <td>Mar 25, 2025 8:15 AM</td>
+                                            <td><span class="status-badge status-processing">Processing</span></td>
+                                            <td>
+                                                <button class="action-btn" title="Cancel" disabled>
+                                                    <svg class="icon icon-sm" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                                    </svg>
+                                                </button>
+                                                <button class="action-btn" title="View Progress" disabled>
+                                                    <svg class="icon icon-sm" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/>
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Report Summary Cards -->
+                        <div class="report-summaries">
+                            <h3>Report Highlights</h3>
+                            <p>Key insights from recent reports</p>
+                            <div class="summary-cards">
+                                <div class="summary-card">
+                                    <div class="summary-header">
+                                        <h4>AI Usage Trends</h4>
+                                        <span class="summary-period">Last 30 Days</span>
+                                    </div>
+                                    <div class="summary-stats">
+                                        <div class="summary-stat">
+                                            <span class="stat-value">4,672</span>
+                                            <span class="stat-label">Total Queries</span>
+                                        </div>
+                                        <div class="summary-stat">
+                                            <span class="stat-value">+23%</span>
+                                            <span class="stat-label">Growth Rate</span>
+                                        </div>
+                                    </div>
+                                    <div class="summary-insight">
+                                        Peak usage during weekdays with highest activity on Thursdays.
+                                    </div>
+                                </div>
+
+                                <div class="summary-card">
+                                    <div class="summary-header">
+                                        <h4>User Engagement</h4>
+                                        <span class="summary-period">Last 30 Days</span>
+                                    </div>
+                                    <div class="summary-stats">
+                                        <div class="summary-stat">
+                                            <span class="stat-value">847</span>
+                                            <span class="stat-label">Active Users</span>
+                                        </div>
+                                        <div class="summary-stat">
+                                            <span class="stat-value">92%</span>
+                                            <span class="stat-label">Satisfaction</span>
+                                        </div>
+                                    </div>
+                                    <div class="summary-insight">
+                                        High user satisfaction with 5.5 queries per session on average.
+                                    </div>
+                                </div>
+
+                                <div class="summary-card">
+                                    <div class="summary-header">
+                                        <h4>System Performance</h4>
+                                        <span class="summary-period">Last 30 Days</span>
+                                    </div>
+                                    <div class="summary-stats">
+                                        <div class="summary-stat">
+                                            <span class="stat-value">99.9%</span>
+                                            <span class="stat-label">Uptime</span>
+                                        </div>
+                                        <div class="summary-stat">
+                                            <span class="stat-value">1.1s</span>
+                                            <span class="stat-label">Avg Response</span>
+                                        </div>
+                                    </div>
+                                    <div class="summary-insight">
+                                        Excellent system reliability with improved response times.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
