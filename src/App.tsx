@@ -108,7 +108,7 @@ const MapView: React.FC = () => {
       <header className="absolute top-0 left-0 right-0 z-30 bg-gray-900 bg-opacity-90 backdrop-blur-sm border-b border-gray-700">
         <div className="p-4 flex justify-between items-center h-[80px]">
           <h1 className="text-xl font-bold text-white">
-            Butuan City Zoning Map
+            BXU ZONES: Zoning Operations & Navigational E-System
           </h1>
           <div className="flex items-center space-x-4">
             <button
@@ -180,8 +180,6 @@ const MapView: React.FC = () => {
         parcel={selectedParcel}
         onClose={() => setSelectedParcel(null)}
       />
-
-
 
       {/* Map Attribution */}
       <div className="absolute bottom-2 right-1/2 translate-x-1/2 text-xs text-gray-400 z-10">
