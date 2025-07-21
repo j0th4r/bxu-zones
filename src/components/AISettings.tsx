@@ -17,10 +17,8 @@ export const AISettings: React.FC = () => {
   // Initialize with default values to prevent undefined errors
   const [apiKey, setApiKey] = useState(AZURE_OPENAI_CONFIG.apiKey || '');
   const [model, setModel] = useState(
-    AZURE_OPENAI_CONFIG.modelName || 'o4-mini'
+    AZURE_OPENAI_CONFIG.modelName || 'o3-mini'
   );
-  const [maxTokens, setMaxTokens] = useState((4096).toString());
-  const [temperature, setTemperature] = useState(0.7);
   const [endpoint, setEndpoint] = useState(AZURE_OPENAI_CONFIG.endpoint || '');
   const [deployment, setDeployment] = useState(
     AZURE_OPENAI_CONFIG.deployment || ''
@@ -65,7 +63,7 @@ export const AISettings: React.FC = () => {
     {id: 'monitoring', label: 'Monitoring', icon: BarChart3},
   ];
 
-  const models = ['o4-mini', 'gpt-4o', 'gpt-4', 'gpt-35-turbo'];
+  const models = ['o3-mini', 'gpt-4o', 'gpt-4', 'gpt-35-turbo'];
 
   const handleStartTraining = () => {
     // Training logic would go here
@@ -117,11 +115,6 @@ export const AISettings: React.FC = () => {
     console.log('Saving Azure OpenAI settings:', {
       apiKey: apiKey.substring(0, 10) + '...',
       model,
-      maxTokens,
-      temperature,
-      endpoint,
-      deployment,
-      apiVersion,
     });
 
     setConnectionStatus('success');
@@ -292,7 +285,7 @@ export const AISettings: React.FC = () => {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6">
                       {/* Deployment */}
                       <div>
                         <label className="block text-sm font-medium text-white mb-2">
@@ -344,46 +337,10 @@ export const AISettings: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Max Tokens */}
-                      <div>
-                        <label className="block text-sm font-medium text-white mb-2">
-                          Max Tokens
-                        </label>
-                        <input
-                          type="number"
-                          value={maxTokens}
-                          onChange={(e) => setMaxTokens(e.target.value)}
-                          className="w-full px-4 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          placeholder="100000"
-                        />
-                      </div>
+                      {/* Max Tokens removed */}
                     </div>
 
-                    {/* Temperature */}
-                    <div>
-                      <label className="block text-sm font-medium text-white mb-2">
-                        Temperature ({temperature})
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.1"
-                          value={temperature}
-                          onChange={(e) =>
-                            setTemperature(parseFloat(e.target.value))
-                          }
-                          className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
-                        />
-                        <div className="flex justify-between text-xs text-gray-400 mt-1">
-                          <span>
-                            Lower values make responses more deterministic.
-                            Higher values make them more creative.
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                    {/* Temperature setting removed */}
                   </div>
                 </div>
 

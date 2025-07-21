@@ -25,12 +25,18 @@ export interface Parcel {
   attributes: Record<string, any>;
 }
 
+export interface SafetyRequirement {
+  title: string; // e.g., "Electrical Safety"
+  details: string; // detailed guidance
+}
+
 export interface SearchResult {
   query: string;
   results: {
     parcels: Parcel[];
     summary: string;
     highlights: string[];
+    safetyRequirements?: SafetyRequirement[];
   };
 }
 
@@ -53,4 +59,14 @@ export interface SupplierInfo {
   address: string;
   /** Straight-line distance from the queried parcel in kilometres */
   distance_km: number;
+}
+
+// Multiple suppliers response
+export interface SuppliersResponse {
+  /** Array of supplier information (3-5 suppliers maximum) */
+  suppliers: SupplierInfo[];
+  /** The location/address that was searched for */
+  searchLocation: string;
+  /** The context query used for the search */
+  contextQuery?: string;
 }

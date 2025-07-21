@@ -1,21 +1,43 @@
 import React, {useState} from 'react';
-import {CheckCircle, Minus, Maximize2} from 'lucide-react';
-import {SearchResult} from '../types/zoning';
+import {CheckCircle, Minus, Maximize2, Shield, Download} from 'lucide-react';
+import {SearchResult, SafetyRequirement} from '../types/zoning';
 
 interface SearchResultsProps {
   results: SearchResult | null;
   onClose: () => void;
   onSelectParcel?: (parcel: any) => void;
+  isMinimized: boolean;
+  onToggleMinimize: () => void;
 }
 
 export const SearchResults: React.FC<SearchResultsProps> = ({
   results,
   onClose,
   onSelectParcel,
+  isMinimized,
+  onToggleMinimize,
 }) => {
-  const [isMinimized, setIsMinimized] = useState(false);
 
   if (!results) return null;
+
+  const hasSafety = results.results.safetyRequirements && results.results.safetyRequirements.length > 0;
+  const [activeTab, setActiveTab] = useState<'overview' | 'requirements'>('overview');
+
+  const formsNeeded = [
+
+    {
+      title: 'Request Form - Business Permit Revision',
+      published: 'Dec 18 2022',
+    },
+    {
+      title: 'Request Form - Certificate of Good Moral Character',
+      published: 'Dec 18 2022',
+    },
+    {
+      title: 'Request Form - Certification / Certified True Copy',
+      published: 'Dec 18 2022',
+    },
+  ];
 
   return (
     <div className="absolute top-48 left-4 right-4 z-20 max-w-2xl mx-auto">
@@ -24,7 +46,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
           <h3 className="text-white font-semibold">AI Search Results</h3>
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setIsMinimized(!isMinimized)}
+              onClick={onToggleMinimize}
               className="text-gray-400 hover:text-white transition-colors flex-shrink-0"
               title={isMinimized ? 'Maximize' : 'Minimize'}
             >
@@ -41,6 +63,22 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
         </div>
 
         {!isMinimized && (
+          <>
+            {/* Tab Navigation */}
+            <div className="flex space-x-2 border-b border-gray-700 mb-3 px-2">
+              <button
+                onClick={() => setActiveTab('overview')}
+                className={`py-1 px-3 text-xs rounded-t-md transition-colors ${activeTab==='overview' ? 'bg-gray-900 text-white' : 'text-gray-400 hover:text-white'}`}
+              >Overview</button>
+              {hasSafety && (
+                <button
+                  onClick={() => setActiveTab('requirements')}
+                  className={`py-1 px-3 text-xs rounded-t-md transition-colors ${activeTab==='requirements' ? 'bg-gray-900 text-white' : 'text-gray-400 hover:text-white'}`}
+                >Requirements</button>
+              )}
+            </div>
+
+          {activeTab==='overview' && (
           <div className="space-y-3 pr-2">
             <div className="mt-4 text-gray-300 text-sm leading-relaxed whitespace-normal">
               {results.results.summary}
@@ -98,6 +136,50 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
               </div>
             )}
           </div>
+          )}
+
+          {activeTab==='requirements' && hasSafety && (
+            <div className="space-y-4 pr-2">
+              {/* Forms Needed Section */}
+              <div>
+                <h4 className="text-white text-sm font-semibold mb-2">Forms Needed</h4>
+                <div className="space-y-2">
+                  {formsNeeded.map((form, idx)=> (
+                    <div key={idx} className="bg-gray-700/50 p-2 rounded text-xs flex justify-between items-center">
+                      <div className="flex-1 cursor-pointer">
+                        <span className="text-gray-300 truncate pr-2 hover:text-white">{form.title}</span>
+                        <div className="text-gray-500 text-[10px]">{form.published}</div>
+                      </div>
+                      <button className="bg-blue-600 hover:bg-blue-700 p-2 rounded-full text-white flex-shrink-0" title="Download form">
+                        <Download size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Safety Requirements Section */}
+              <div className="pt-3 border-t border-gray-700 space-y-4">
+                <h4 className="text-white text-sm font-semibold">Safety Requirements</h4>
+                {results.results.safetyRequirements!.map((req: SafetyRequirement, idx: number) => (
+                  <div key={idx} className="bg-gray-700/50 p-3 rounded">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Shield size={14} className="text-yellow-400 flex-shrink-0" />
+                      <h4 className="text-white text-xs font-semibold uppercase tracking-wide">{req.title}</h4>
+                    </div>
+                    <p className="text-gray-300 text-xs whitespace-pre-line leading-relaxed">
+                      {req.details}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="text-gray-400 text-xs leading-relaxed mt-2">
+                Following these requirements ensures compliance, safeguards public welfare, and streamlines the permitting process for your proposed business.
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
     </div>

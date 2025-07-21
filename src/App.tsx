@@ -16,7 +16,7 @@ import { FAQs } from './components/FAQs';
 import { Import } from './components/Import';
 import { Users } from './components/Users';
 import { Shield, RefreshCw } from 'lucide-react';
-import { ZoningDistrict, Parcel, SearchResult } from './types/zoning';
+import { ZoningDistrict, Parcel, SearchResult, SuppliersResponse } from './types/zoning';
 import { ZoningAPI } from './utils/api';
 import { AZURE_MAPS_CONFIG } from './config/azure-maps';
 
@@ -30,6 +30,7 @@ const MapView: React.FC = () => {
   );
   const [searchResults, setSearchResults] =
     useState<SearchResult | null>(null);
+  const [resultsMinimized, setResultsMinimized] = useState(false);
   const [isLegendVisible, setIsLegendVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -43,6 +44,11 @@ const MapView: React.FC = () => {
   const [currentMapStyle, setCurrentMapStyle] = useState<string>('road');
   const [centerCoords, setCenterCoords] = useState<[number, number] | null>(null);
   const mapRef = useRef<MapComponentRef>(null);
+
+  // Supplier state - persists across popup close/open cycles
+  const [supplierData, setSupplierData] = useState<SuppliersResponse | null>(null);
+  const [loadingSuppliers, setLoadingSuppliers] = useState(false);
+  const [supplierParcelId, setSupplierParcelId] = useState<string | null>(null);
 
   useEffect(() => {
     loadZoningDistricts();
@@ -60,11 +66,66 @@ const MapView: React.FC = () => {
   };
 
   const handleParcelClick = (parcel: Parcel) => {
+    // Store the parcel and search context
+    const currentSearchContext = searchResults?.query || '';
+    
     setSelectedParcel(parcel);
+    // Minimize AI search results when user clicks a parcel on the map
+    setResultsMinimized(true);
+    
+    // Always fetch new suppliers when a parcel is clicked, passing the current search context
+    if (parcel.geometry) {
+      // Only fetch suppliers for parcels with geometry (actual parcel or search result)
+      handleFetchSuppliers(parcel, currentSearchContext);
+    } else {
+      // Clear any supplier data when clicking zoning area
+      setSupplierData(null);
+    }
+  };
+
+  const handleFetchSuppliers = async (parcel: Parcel, searchContext: string) => {
+    setLoadingSuppliers(true);
+    setSupplierParcelId(parcel.id);
+    // Clear existing supplier data before fetching new data
+    setSupplierData(null);
+    try {
+      const suppliers = await ZoningAPI.getNearestSuppliers(
+        parcel.address, 
+        searchContext || searchResults?.query
+      );
+      setSupplierData(suppliers);
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+      // Set fallback supplier data on error
+      setSupplierData({
+        suppliers: [
+          {
+            name: 'Error - No Suppliers Found',
+            phone: '+63 900 000 0000',
+            business: 'Service Temporarily Unavailable',
+            address: 'Please try again later',
+            distance_km: 0
+          }
+        ],
+        searchLocation: parcel.address,
+        contextQuery: searchContext || searchResults?.query
+      });
+    } finally {
+      setLoadingSuppliers(false);
+    }
   };
 
   const handleSearchResults = (results: SearchResult) => {
     setSearchResults(results);
+    // Ensure results are expanded when new search is performed
+    setResultsMinimized(false);
+    
+    // Clear supplier data when performing a new search
+    setSupplierData(null);
+    setSupplierParcelId(null);
+    
+    // Clear selected parcel when performing a new search
+    setSelectedParcel(null);
   };
 
   const handleSelectSearchParcel = (parcel: Parcel) => {
@@ -80,6 +141,9 @@ const MapView: React.FC = () => {
     if (selectedParcel) {
       setSelectedParcel(null);
     }
+
+    // Minimize AI search results after selecting a parcel
+    setResultsMinimized(true);
   };
 
   const handleMapZoom = (direction: 'in' | 'out') => {
@@ -160,6 +224,8 @@ const MapView: React.FC = () => {
         results={searchResults}
         onClose={() => setSearchResults(null)}
         onSelectParcel={handleSelectSearchParcel}
+        isMinimized={resultsMinimized}
+        onToggleMinimize={() => setResultsMinimized((prev) => !prev)}
       />
 
       {/* Main Map */}
@@ -204,6 +270,9 @@ const MapView: React.FC = () => {
         parcel={selectedParcel}
         onClose={() => setSelectedParcel(null)}
         contextQuery={searchResults?.query}
+        supplierData={supplierData}
+        loadingSuppliers={loadingSuppliers}
+        onRefreshSuppliers={() => selectedParcel && handleFetchSuppliers(selectedParcel, searchResults?.query || '')}
       />
 
 

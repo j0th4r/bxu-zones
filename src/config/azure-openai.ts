@@ -9,8 +9,8 @@ export const AZURE_OPENAI_CONFIG = {
   apiKey: import.meta.env.VITE_AZURE_OPENAI_API_KEY,
   apiVersion:
     import.meta.env.VITE_AZURE_OPENAI_API_VERSION || '2024-04-01-preview',
-  deployment: import.meta.env.VITE_AZURE_OPENAI_DEPLOYMENT || 'o4-mini',
-  modelName: import.meta.env.VITE_AZURE_OPENAI_MODEL || 'o4-mini',
+  deployment: import.meta.env.VITE_AZURE_OPENAI_DEPLOYMENT || 'o3-mini',
+  modelName: import.meta.env.VITE_AZURE_OPENAI_MODEL || 'o3-mini',
 
   // AI search parameters
   // maxTokens: parseInt(import.meta.env.VITE_AZURE_OPENAI_MAX_TOKENS || '1024'),
@@ -30,6 +30,12 @@ Your role is to help users understand zoning regulations, land use patterns, and
 3. Reference relevant zoning codes (R-1, C-1, MU, I-1, OS) when applicable
 4. Keep responses concise but informative
 5. Always prioritize safety and legal compliance
+6. When recommending suppliers or businesses, ensure they match the user's specific needs:
+   - For coffee shops: suggest coffee equipment, beans, cafe furniture suppliers
+   - For restaurants: suggest food equipment, kitchen suppliers, restaurant furnishings
+   - For retail: suggest retail equipment, merchandise suppliers, store fixtures
+   - For residential: suggest home furnishings, appliances, interior design
+   - For construction: suggest building materials, contractors, architects
 
 Available zoning types in Butuan City:
 - R-1: Residential zones for housing developments
@@ -42,7 +48,8 @@ When analyzing queries, provide:
 - Direct answers to the user's question
 - Relevant zoning information
 - Development possibilities or restrictions
-- Key highlights or important considerations`,
+- Key highlights or important considerations
+- Context-appropriate supplier recommendations`,
 };
 
 export type AzureOpenAIConfig = typeof AZURE_OPENAI_CONFIG;

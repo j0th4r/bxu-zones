@@ -84,7 +84,6 @@ export const MapControls: React.FC<MapControlsProps> = ({
     developmentPotential:
       'The C-3 Central Business District allows high-rise development up to 15 stories with FAR 8.0, indicating significant vertical development potential. Mixed-use zones encourage transit-oriented development. The university area shows potential for student housing and related services.',
     relevantSections: [
-      'R.A. 7279 - Urban Development & Housing Act',
       'P.D. 1096 - National Building Code',
       'Butuan City Zoning Ordinance 2023',
     ],
