@@ -15,8 +15,11 @@ import {
   Satellite,
   Globe,
   Map,
+  Car,
+  Train,
+  Mountain,
 } from 'lucide-react';
-import {AZURE_MAPS_CONFIG} from '../config/azure-maps';
+import { GOOGLE_MAPS_CONFIG } from '../config/google-maps';
 
 interface MapControlsProps {
   onZoomIn: () => void;
@@ -28,6 +31,7 @@ interface MapControlsProps {
   onMapStyleChange?: (style: string) => void;
   currentMapStyle?: string;
   className?: string;
+  layerVisibility?: { [key: string]: boolean };
 }
 
 export const MapControls: React.FC<MapControlsProps> = ({
@@ -40,6 +44,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
   onMapStyleChange,
   currentMapStyle = 'road',
   className = '',
+  layerVisibility = {}
 }) => {
   const [isMapToolsVisible, setIsMapToolsVisible] = useState(true);
   const [activeTab, setActiveTab] = useState<'layers' | 'measure' | 'ai'>(
@@ -99,21 +104,23 @@ export const MapControls: React.FC<MapControlsProps> = ({
     }
   };
 
-  const renderLayersPanel = () => (
+  const renderLayersPanel = () => {
+    
+    return (
     <div className="space-y-4 w-full">
       {/* Map Style Section */}
       <div className="w-full">
         <div className="flex items-center space-x-2 mb-3">
           <Globe size={16} className="text-blue-400 flex-shrink-0" />
-          <span className="text-white text-sm font-medium">Map Style</span>
+          <span className="text-white text-sm font-medium">Base Map</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
-          {Object.entries(AZURE_MAPS_CONFIG.mapStyles).map(([key, style]) => (
+          {Object.entries(GOOGLE_MAPS_CONFIG.mapStyles).map(([key, style]) => (
             <button
               key={key}
-              onClick={() => onMapStyleChange?.(key)}
+              onClick={() => onMapStyleChange?.(style)}
               className={`p-2 rounded-md text-xs transition-colors flex items-center space-x-1 w-full justify-center ${
-                currentMapStyle === key
+                currentMapStyle === style
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
               }`}
@@ -121,19 +128,53 @@ export const MapControls: React.FC<MapControlsProps> = ({
               <div className="flex-shrink-0">
                 {key === 'satellite' ? (
                   <Satellite size={12} />
-                ) : key === 'hybrid' ? (
-                  <Globe size={12} />
+                ) : key === 'terrain' ? (
+                  <Mountain size={12} />
                 ) : (
                   <Map size={12} />
                 )}
               </div>
-              <span className="truncate">{style.name}</span>
+              <span className="truncate capitalize">{key}</span>
             </button>
           ))}
         </div>
       </div>
-    </div>
+
+      {/* Map Layers Section */}
+      <div className="w-full mt-4">
+        <div className="flex items-center space-x-2 mb-3">
+          <Layers size={16} className="text-blue-400 flex-shrink-0" />
+          <span className="text-white text-sm font-medium">Map Details</span>
+        </div>
+        <div className="space-y-2">
+          <button
+            onClick={() => onLayerToggle?.('traffic', !layerVisibility['traffic'])}
+            className={`p-2 rounded-md text-xs transition-colors flex items-center space-x-2 w-full ${
+              layerVisibility['traffic']
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
+            }`}
+          >
+            <Car size={12} />
+            <span>Traffic</span>
+          </button>
+          <button
+            onClick={() => onLayerToggle?.('transit', !layerVisibility['transit'])}
+            className={`p-2 rounded-md text-xs transition-colors flex items-center space-x-2 w-full ${
+              layerVisibility['transit']
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
+            }`}
+          >
+            <Train size={12} />
+            <span>Transit</span>
+          </button>
+          {/* Terrain and Street View buttons removed */}
+          </div>
+        </div>
+      </div>
   );
+  };
 
   const renderMeasurePanel = () => (
     <div className="space-y-4 w-full">

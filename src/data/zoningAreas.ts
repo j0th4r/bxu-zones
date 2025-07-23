@@ -33,17 +33,17 @@ export const zoningAreas = [
       type: 'Polygon',
       coordinates: [
         [
-          [125.528, 8.952],
-          [125.531, 8.9522],
-          [125.5315, 8.9518],
-          [125.5317, 8.9513],
-          [125.5314, 8.9508],
-          [125.5308, 8.9505],
-          [125.5302, 8.9506],
-          [125.5295, 8.9509],
-          [125.529, 8.9513],
-          [125.5288, 8.9518],
-          [125.528, 8.952],
+          [125.5283264838572, 8.9523868878934],
+          [125.52939936738169, 8.949673754665726],
+          [125.53555771881226, 8.952005354756059],
+          [125.53626582193843, 8.952047747346631],
+          [125.53643748330235, 8.951369465304447],
+          [125.5393480532455, 8.951307326849555],
+          [125.53945335214786, 8.952624866359034],
+          [125.53611888690683, 8.952751997111859],
+          [125.53549333082925, 8.955474833493545],
+          [125.53460440824408, 8.956503986802003],
+          [125.52829453817228, 8.952297340211162],
         ],
       ],
     },
@@ -58,6 +58,7 @@ export const zoningAreas = [
     },
   },
 
+
   // COMMERCIAL ZONES (C-1)
   {
     type: 'Feature',
@@ -65,17 +66,17 @@ export const zoningAreas = [
       type: 'Polygon',
       coordinates: [
         [
-          [125.542, 8.953],
-          [125.5445, 8.9532],
-          [125.545, 8.9528],
-          [125.5452, 8.9523],
-          [125.5449, 8.9518],
-          [125.5444, 8.9515],
-          [125.5438, 8.9516],
-          [125.5432, 8.9519],
-          [125.5428, 8.9523],
-          [125.5427, 8.9528],
-          [125.542, 8.953],
+          [125.52523253043829, 8.938613816641144],
+          [125.52759287419214, 8.938698604936686],
+          [125.52664873669062, 8.949085021798973],
+          [125.52926657249036, 8.949636129515342],
+          [125.52803620340833, 8.953338101918416],
+          [125.52669000336365, 8.953847385607101],
+          [125.52634629271395, 8.954498135949136],
+          [125.52325289686665, 8.953451276133084],
+          [125.52491416500686, 8.945047994943849],
+          [125.52428402881574, 8.94493481811525],
+          [125.52523253043829, 8.938613816641144],
         ],
       ],
     },
@@ -89,227 +90,9 @@ export const zoningAreas = [
       objectId: 3,
     },
   },
-  {
-    type: 'Feature',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [
-        [
-          [125.545, 8.95],
-          [125.5475, 8.9502],
-          [125.548, 8.9498],
-          [125.5482, 8.9493],
-          [125.5479, 8.9488],
-          [125.5474, 8.9485],
-          [125.5468, 8.9486],
-          [125.5462, 8.9489],
-          [125.5458, 8.9493],
-          [125.5457, 8.9498],
-          [125.545, 8.95],
-        ],
-      ],
-    },
-    properties: {
-      id: 'c1-002',
-      zoneType: 'C-1',
-      zoneName: 'Commercial Zone - Downtown Center',
-      description: 'Central business and shopping district',
-      address: 'Downtown Center, Butuan City',
-      regulations: 'Max height: 25 meters, FAR: 4.0, Lot coverage: 80%',
-      objectId: 4,
-    },
-  },
-
-  // MIXED USE ZONES (MU)
-  {
-    type: 'Feature',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [
-        [
-          [125.539, 8.952],
-          [125.5415, 8.9522],
-          [125.542, 8.9518],
-          [125.5422, 8.9513],
-          [125.5419, 8.9508],
-          [125.5414, 8.9505],
-          [125.5408, 8.9506],
-          [125.5402, 8.9509],
-          [125.5398, 8.9513],
-          [125.5397, 8.9518],
-          [125.539, 8.952],
-        ],
-      ],
-    },
-    properties: {
-      id: 'mu-001',
-      zoneType: 'MU',
-      zoneName: 'Mixed Use Zone - Poblacion Heritage',
-      description: 'Historic mixed use with residential and commercial',
-      address: 'Poblacion Heritage District, Butuan City',
-      regulations: 'Max height: 20 meters, FAR: 3.5, Lot coverage: 70%',
-      objectId: 5,
-    },
-  },
-  {
-    type: 'Feature',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [
-        [
-          [125.548, 8.9545],
-          [125.5505, 8.9547],
-          [125.551, 8.9543],
-          [125.5512, 8.9538],
-          [125.5509, 8.9533],
-          [125.5504, 8.953],
-          [125.5498, 8.9531],
-          [125.5492, 8.9534],
-          [125.5488, 8.9538],
-          [125.5487, 8.9543],
-          [125.548, 8.9545],
-        ],
-      ],
-    },
-    properties: {
-      id: 'mu-002',
-      zoneType: 'MU',
-      zoneName: 'Mixed Use Zone - Golden Ribbon',
-      description: 'Modern mixed development with live-work spaces',
-      address: 'Golden Ribbon District, Butuan City',
-      regulations: 'Max height: 20 meters, FAR: 3.5, Lot coverage: 70%',
-      objectId: 6,
-    },
-  },
-
-  // INDUSTRIAL ZONES (I-1)
-  {
-    type: 'Feature',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [
-        [
-          [125.475, 8.948],
-          [125.478, 8.9482],
-          [125.479, 8.9478],
-          [125.4792, 8.9472],
-          [125.4789, 8.9466],
-          [125.4783, 8.9462],
-          [125.4775, 8.946],
-          [125.4765, 8.9462],
-          [125.4758, 8.9466],
-          [125.4756, 8.9472],
-          [125.475, 8.9478],
-          [125.475, 8.948],
-        ],
-      ],
-    },
-    properties: {
-      id: 'i1-001',
-      zoneType: 'I-1',
-      zoneName: 'Industrial Zone - Bancasi Area',
-      description: 'Light industrial and logistics facilities',
-      address: 'Bancasi Industrial Area, Butuan City',
-      regulations: 'Max height: 18 meters, FAR: 2.5, Lot coverage: 75%',
-      objectId: 7,
-    },
-  },
-  {
-    type: 'Feature',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [
-        [
-          [125.555, 8.945],
-          [125.558, 8.9452],
-          [125.559, 8.9448],
-          [125.5592, 8.9442],
-          [125.5589, 8.9436],
-          [125.5583, 8.9432],
-          [125.5575, 8.943],
-          [125.5565, 8.9432],
-          [125.5558, 8.9436],
-          [125.5556, 8.9442],
-          [125.555, 8.9448],
-          [125.555, 8.945],
-        ],
-      ],
-    },
-    properties: {
-      id: 'i1-002',
-      zoneType: 'I-1',
-      zoneName: 'Industrial Zone - Eastern District',
-      description: 'Manufacturing and processing facilities',
-      address: 'Eastern Industrial District, Butuan City',
-      regulations: 'Max height: 18 meters, FAR: 2.5, Lot coverage: 75%',
-      objectId: 8,
-    },
-  },
-
-  // OPEN SPACE ZONES (OS)
-  {
-    type: 'Feature',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [
-        [
-          [125.543, 8.956],
-          [125.5455, 8.9562],
-          [125.546, 8.9558],
-          [125.5462, 8.9553],
-          [125.5459, 8.9548],
-          [125.5454, 8.9545],
-          [125.5448, 8.9546],
-          [125.5442, 8.9549],
-          [125.5438, 8.9553],
-          [125.5437, 8.9558],
-          [125.543, 8.956],
-        ],
-      ],
-    },
-    properties: {
-      id: 'os-001',
-      zoneType: 'OS',
-      zoneName: 'Open Space - Magsaysay Park',
-      description: 'Public park and recreational facilities',
-      address: 'Magsaysay Park, Butuan City',
-      regulations: 'Max height: 10 meters, FAR: 0.5, Lot coverage: 15%',
-      objectId: 9,
-    },
-  },
-  {
-    type: 'Feature',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [
-        [
-          [125.532, 8.958],
-          [125.535, 8.9583],
-          [125.5365, 8.9581],
-          [125.5375, 8.9578],
-          [125.5378, 8.9573],
-          [125.5375, 8.9568],
-          [125.5368, 8.9565],
-          [125.5358, 8.9564],
-          [125.5348, 8.9566],
-          [125.5338, 8.9569],
-          [125.533, 8.9573],
-          [125.5327, 8.9578],
-          [125.532, 8.958],
-        ],
-      ],
-    },
-    properties: {
-      id: 'os-002',
-      zoneType: 'OS',
-      zoneName: 'Open Space - Agusan River Buffer',
-      description: 'Protected environmental zone along the river',
-      address: 'Agusan River Buffer Zone, Butuan City',
-      regulations: 'Max height: 10 meters, FAR: 0.5, Lot coverage: 15%',
-      objectId: 10,
-    },
-  },
+ 
 ];
+
 
 // Helper function to parse FAR and height from regulations
 export const parseRegulations = (regulations: string) => {

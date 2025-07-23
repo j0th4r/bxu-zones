@@ -10,9 +10,45 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Azure Maps -->
-    <link rel="stylesheet" href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.css" type="text/css" />
-    <script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.js"></script>
+    <style>
+      /* Override Google Maps default styles */
+      .gm-style img { max-width: none; }
+      .gm-style-iw { min-width: 200px; }
+
+      /* Prevent cursor resource loading */
+      * {
+        cursor: auto;
+      }
+      [draggable] {
+        cursor: grab;
+      }
+      [draggable]:active {
+        cursor: grabbing;
+      }
+      button, 
+      [role="button"],
+      .clickable {
+        cursor: pointer;
+      }
+
+      /* Ensure proper map container dimensions */
+      html, body, #root {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      #root {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .map-container {
+        flex: 1;
+        position: relative;
+        min-height: 400px;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

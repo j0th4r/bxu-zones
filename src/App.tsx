@@ -18,7 +18,8 @@ import { Users } from './components/Users';
 import { Shield, RefreshCw } from 'lucide-react';
 import { ZoningDistrict, Parcel, SearchResult, SuppliersResponse } from './types/zoning';
 import { ZoningAPI } from './utils/api';
-import { AZURE_MAPS_CONFIG } from './config/azure-maps';
+import { GOOGLE_MAPS_CONFIG } from './config/google-maps';
+
 
 const MapView: React.FC = () => {
   const navigate = useNavigate();
@@ -36,12 +37,12 @@ const MapView: React.FC = () => {
   
   // Map tools state
   const [layerVisibility, setLayerVisibility] = useState<Record<string, boolean>>({
-    'Zoning Districts': true,
-    'Zone Boundaries': true,
-    'Buildings': true,
+    'traffic': false,
+    'transit': false,
+    'streetView': GOOGLE_MAPS_CONFIG.mapLayers.streetView
   });
   const [activeMeasurementTool, setActiveMeasurementTool] = useState<string | null>(null);
-  const [currentMapStyle, setCurrentMapStyle] = useState<string>('road');
+  const [currentMapStyle, setCurrentMapStyle] = useState<string>(GOOGLE_MAPS_CONFIG.mapStyles.default);
   const [centerCoords, setCenterCoords] = useState<[number, number] | null>(null);
   const mapRef = useRef<MapComponentRef>(null);
 
@@ -235,7 +236,6 @@ const MapView: React.FC = () => {
           onParcelClick={handleParcelClick}
           searchResults={searchResults}
           className="w-full h-full"
-          subscriptionKey={AZURE_MAPS_CONFIG.subscriptionKey}
           layerVisibility={layerVisibility}
           activeMeasurementTool={activeMeasurementTool}
           currentMapStyle={currentMapStyle}
@@ -253,6 +253,7 @@ const MapView: React.FC = () => {
         onAIAnalysis={handleAIAnalysis}
         onMapStyleChange={handleMapStyleChange}
         currentMapStyle={currentMapStyle}
+        layerVisibility={layerVisibility}
         className="absolute top-1/2 -translate-y-1/2 left-4 z-10"
       />
 
@@ -279,7 +280,7 @@ const MapView: React.FC = () => {
 
       {/* Map Attribution */}
       <div className="absolute bottom-2 right-1/2 translate-x-1/2 text-xs text-gray-400 z-10">
-        © Esri © OpenStreetMap contributors
+        © Google Maps
       </div>
 
       {/* Loading Overlay */}

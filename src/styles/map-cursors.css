@@ -1,0 +1,20 @@
+/* Custom cursor styles for Google Maps */
+.gm-style {
+  cursor: grab !important;
+}
+
+.gm-style:active {
+  cursor: grabbing !important;
+}
+
+/* Override default cursors */
+.gm-style * {
+  cursor: inherit !important;
+}
+
+/* Specific overrides for controls */
+.gm-control-active,
+.gm-fullscreen-control,
+.gm-style-mtc > * {
+  cursor: pointer !important;
+} 
