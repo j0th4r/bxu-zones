@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { MapComponent, MapComponentRef } from './components/MapComponent';
 import { SearchBar } from './components/SearchBar';
 import { Legend } from './components/Legend';
@@ -39,6 +39,7 @@ const MapView: React.FC = () => {
   const [layerVisibility, setLayerVisibility] = useState<Record<string, boolean>>({
     'traffic': false,
     'transit': false,
+    'Zoning Districts': true,
     'streetView': GOOGLE_MAPS_CONFIG.mapLayers.streetView
   });
   const [activeMeasurementTool, setActiveMeasurementTool] = useState<string | null>(null);
@@ -49,7 +50,6 @@ const MapView: React.FC = () => {
   // Supplier state - persists across popup close/open cycles
   const [supplierData, setSupplierData] = useState<SuppliersResponse | null>(null);
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
-  const [supplierParcelId, setSupplierParcelId] = useState<string | null>(null);
 
   useEffect(() => {
     loadZoningDistricts();
@@ -86,7 +86,6 @@ const MapView: React.FC = () => {
 
   const handleFetchSuppliers = async (parcel: Parcel, searchContext: string) => {
     setLoadingSuppliers(true);
-    setSupplierParcelId(parcel.id);
     // Clear existing supplier data before fetching new data
     setSupplierData(null);
     try {
@@ -123,7 +122,6 @@ const MapView: React.FC = () => {
     
     // Clear supplier data when performing a new search
     setSupplierData(null);
-    setSupplierParcelId(null);
     
     // Clear selected parcel when performing a new search
     setSelectedParcel(null);
@@ -186,6 +184,31 @@ const MapView: React.FC = () => {
   const handleMapStyleChange = (style: string) => {
     setCurrentMapStyle(style);
     console.log(`Map style changed to: ${style}`);
+  };
+
+  const handleZoningDistrictClick = (district: ZoningDistrict) => {
+    // Convert ZoningDistrict to Parcel format for the popup
+    const mockParcel: Parcel = {
+      id: district.id,
+      address: district.name,
+      zoneId: district.type,
+      geometry: null, // No point geometry - indicates this is a zoning area
+      attributes: {
+        OBJECTID: district.id,
+        ZONE_NAME: district.name,
+        ZONE_TYPE: district.type,
+        DESCRIPTION: district.description,
+        ADDRESS: district.name,
+        regulations: `Max Height: ${district.bulkRules.maxHeight}, FAR: ${district.bulkRules.farRatio}, Lot Coverage: ${district.bulkRules.lotCoverage}`,
+        allowedUses: district.allowedUses.join(', ')
+      },
+    };
+    
+    // Set the mock parcel to trigger the popup
+    setSelectedParcel(mockParcel);
+    
+    // Clear supplier data since this is a zoning area, not a specific parcel
+    setSupplierData(null);
   };
 
   return (
@@ -263,6 +286,7 @@ const MapView: React.FC = () => {
           districts={zoningDistricts}
           isVisible={isLegendVisible}
           onToggle={() => setIsLegendVisible(!isLegendVisible)}
+          onZoningDistrictClick={handleZoningDistrictClick}
         />
       </div>
 

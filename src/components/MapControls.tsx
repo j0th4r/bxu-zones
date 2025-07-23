@@ -170,11 +170,11 @@ export const MapControls: React.FC<MapControlsProps> = ({
             <span>Transit</span>
           </button>
           {/* Terrain and Street View buttons removed */}
-          </div>
         </div>
       </div>
+    </div>
   );
-  };
+};
 
   const renderMeasurePanel = () => (
     <div className="space-y-4 w-full">

@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {X, Building, MapPin, Info, Loader2, Phone, RefreshCw} from 'lucide-react';
 import {Parcel} from '../types/zoning';
 import { SuppliersResponse } from '../types/zoning';
+import { StreetViewPreview } from './StreetViewPreview';
+import { StreetViewModal } from './StreetViewModal';
 
 interface ParcelPopupProps {
   parcel: Parcel | null;
@@ -15,11 +17,12 @@ interface ParcelPopupProps {
 export const ParcelPopup: React.FC<ParcelPopupProps> = ({
   parcel, 
   onClose, 
-  contextQuery = '', 
+  contextQuery: _contextQuery = '', // Used for future AI-powered context features 
   supplierData, 
   loadingSuppliers = false, 
   onRefreshSuppliers
 }) => {
+  const [isStreetViewModalOpen, setIsStreetViewModalOpen] = useState(false);
 
   if (!parcel) return null;
 
@@ -66,9 +69,7 @@ export const ParcelPopup: React.FC<ParcelPopupProps> = ({
             <p className="text-white text-sm">
               {parcel.attributes.DESCRIPTION || 'No description available'}
             </p>
-          </div>
-
-          {parcel.attributes.regulations && (
+          </div>          {parcel.attributes.regulations && (
             <div>
               <label className="text-gray-400 block mb-2">Regulations</label>
               <div className="flex items-start space-x-2">
@@ -78,6 +79,16 @@ export const ParcelPopup: React.FC<ParcelPopupProps> = ({
                 </span>
               </div>
             </div>
+          )}
+
+          {/* Street View Preview - hide for zoning areas */}
+          {!isZoningArea && (
+            <StreetViewPreview
+              address={parcel.address}
+              lat={parcel.geometry?.coordinates[1]}
+              lng={parcel.geometry?.coordinates[0]}
+              onPreviewClick={() => setIsStreetViewModalOpen(true)}
+            />
           )}
 
           {/* Supplier info section - hide for zoning areas */}
@@ -123,9 +134,7 @@ export const ParcelPopup: React.FC<ParcelPopupProps> = ({
               <p className="text-gray-400 text-sm">No supplier data available.</p>
             )}
           </div>
-          )}
-
-          <div className="flex items-center space-x-2 text-xs text-gray-400 pt-2 border-t border-gray-700">
+          )}          <div className="flex items-center space-x-2 text-xs text-gray-400 pt-2 border-t border-gray-700">
             <Info size={14} />
             <span>
               Zone Classification:{' '}
@@ -134,6 +143,15 @@ export const ParcelPopup: React.FC<ParcelPopupProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Street View Modal */}
+      <StreetViewModal
+        isOpen={isStreetViewModalOpen}
+        onClose={() => setIsStreetViewModalOpen(false)}
+        address={parcel.address}
+        lat={parcel.geometry?.coordinates[1]}
+        lng={parcel.geometry?.coordinates[0]}
+      />
     </div>
   );
 };

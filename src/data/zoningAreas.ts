@@ -93,6 +93,22 @@ export const zoningAreas = [
  
 ];
 
+// Check for duplicate IDs
+const idSet = new Set<string>();
+const duplicateIds: string[] = [];
+
+zoningAreas.forEach(area => {
+  const id = area.properties.id;
+  if (idSet.has(id)) {
+    duplicateIds.push(id);
+  } else {
+    idSet.add(id);
+  }
+});
+
+if (duplicateIds.length > 0) {
+  console.warn('WARNING: Duplicate IDs found in zoningAreas:', duplicateIds);
+}
 
 // Helper function to parse FAR and height from regulations
 export const parseRegulations = (regulations: string) => {

@@ -6,6 +6,7 @@ interface LegendProps {
   districts: ZoningDistrict[];
   isVisible: boolean;
   onToggle: () => void;
+  onZoningDistrictClick?: (district: ZoningDistrict) => void;
   className?: string;
 }
 
@@ -13,6 +14,7 @@ export const Legend: React.FC<LegendProps> = ({
   districts, 
   isVisible, 
   onToggle, 
+  onZoningDistrictClick,
   className = '' 
 }) => {
   const [selectedDistrict, setSelectedDistrict] = useState<ZoningDistrict | null>(null);
@@ -45,9 +47,16 @@ export const Legend: React.FC<LegendProps> = ({
                     <span className="text-white text-sm">{district.name}</span>
                   </div>
                   <button
-                    onClick={() => setSelectedDistrict(
-                      selectedDistrict?.id === district.id ? null : district
-                    )}
+                    onClick={() => {
+                      if (onZoningDistrictClick) {
+                        onZoningDistrictClick(district);
+                      } else {
+                        // Fallback to inline display if no callback provided
+                        setSelectedDistrict(
+                          selectedDistrict?.id === district.id ? null : district
+                        );
+                      }
+                    }}
                     className="text-gray-400 hover:text-white transition-colors"
                   >
                     <Info size={16} />

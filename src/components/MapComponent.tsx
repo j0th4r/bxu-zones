@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useState, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useState, useRef } from 'react';
 import { GoogleMap, LoadScript, Polygon, Marker } from '@react-google-maps/api';
 import { ZoningDistrict, Parcel } from '../types/zoning';
 import { ZoningAPI } from '../utils/api';
@@ -69,10 +69,45 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
   const [isLoading, setIsLoading] = useState(true);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapLayers, setMapLayers] = useState(GOOGLE_MAPS_CONFIG.mapLayers);
+  const [mapFullyLoaded, setMapFullyLoaded] = useState(false);
   
   // Refs for layers
   const trafficLayerRef = useRef<google.maps.TrafficLayer | null>(null);
   const transitLayerRef = useRef<google.maps.TransitLayer | null>(null);
+
+  // Complete zoning areas dataset (GeoJSON Features)
+  type ZoningFeature = {
+    type: 'Feature';
+    geometry: {
+      type: 'Polygon';
+      coordinates: number[][][]; // [ [ [lng,lat], ... ] ]
+    };
+    properties: {
+      id: string;
+      zoneType: string;
+      zoneName: string;
+      description: string;
+      address: string;
+      regulations: string;
+      objectId: number;
+    };
+  };
+
+  const zoningAreas: ZoningFeature[] = zoningData as unknown as ZoningFeature[];
+
+  // Log zoningAreas data for debugging
+  useEffect(() => {
+    console.log(`Loaded ${zoningData.length} zoning areas`);
+  }, []);
+
+  // Trigger rendering of zoning areas when map is fully loaded
+  useEffect(() => {
+    if (mapFullyLoaded && map) {
+      console.log('Map is fully loaded, ready to render zoning areas');
+      // Force a re-render to ensure zoning areas are displayed
+      setZoningDistricts([...zoningDistricts]);
+    }
+  }, [mapFullyLoaded, map, zoningDistricts]);
 
   useEffect(() => {
     loadZoningData();
@@ -175,30 +210,25 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
     }
   };
 
-  // Complete zoning areas dataset (GeoJSON Features)
-  type ZoningFeature = {
-    type: 'Feature';
-    geometry: {
-      type: 'Polygon';
-      coordinates: number[][][]; // [ [ [lng,lat], ... ] ]
-    };
-    properties: {
-      id: string;
-      zoneType: string;
-      zoneName: string;
-      description: string;
-      address: string;
-      regulations: string;
-      objectId: number;
-    };
-  };
-
-  const zoningAreas: ZoningFeature[] = zoningData as unknown as ZoningFeature[];
-
   const onLoad = (map: google.maps.Map) => {
     console.log('Map loaded successfully');
     setMap(map);
-    setIsLoading(false);
+    
+    // Listen for the tilesloaded event to know when the map is fully rendered
+    map.addListener('tilesloaded', () => {
+      console.log('Map tiles loaded, map is fully rendered');
+      setIsLoading(false);
+      setMapFullyLoaded(true);
+    });
+    
+    // Also set a backup timeout in case the event doesn't fire
+    setTimeout(() => {
+      if (!mapFullyLoaded) {
+        console.log('Backup timeout: forcing map to be considered loaded');
+        setIsLoading(false);
+        setMapFullyLoaded(true);
+      }
+    }, 3000);
   };
 
   const onLoadError = (error: Error) => {
@@ -226,40 +256,30 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
           }}
         >
           {/* Render zoning polygons */}
-          {layerVisibility['Zoning Districts'] !== false &&
-            zoningAreas.map((feature) => {
-              const { id, zoneType, zoneName, description, address, objectId } = feature.properties;
-              const path = feature.geometry.coordinates[0].map(([lng, lat]) => ({ lat, lng }));
-              return (
-                <Polygon
-                  key={id}
-                  paths={path}
-                  options={{
-                    fillColor: getZoneColor(zoneType),
-                    fillOpacity: 0.75,
-                    strokeColor: '#FFFFFF',
-                    strokeOpacity: 0.8,
-                    strokeWeight: 2,
-                  }}
-                  onClick={() => {
-                    const mockParcel: Parcel = {
-                      id,
-                      address,
-                      zoneId: zoneType,
-                      geometry: null,
-                      attributes: {
-                        OBJECTID: objectId,
-                        ZONE_NAME: zoneName,
-                        ZONE_TYPE: zoneType,
-                        DESCRIPTION: description,
-                        ADDRESS: address,
-                      },
-                    };
-                    onParcelClick(mockParcel);
-                  }}
-                />
-              );
-            })}
+          {(() => {
+            if (mapFullyLoaded && (layerVisibility['Zoning Districts'] === undefined || layerVisibility['Zoning Districts'] !== false)) {
+              console.log(`Rendering ${zoningAreas.length} zoning polygons...`);
+              return zoningAreas.map((feature) => {
+                const { id, zoneType, objectId } = feature.properties;
+                const path = feature.geometry.coordinates[0].map(([lng, lat]) => ({ lat, lng }));
+                return (
+              <Polygon
+                    key={`${id}-${objectId}`}
+                    paths={path}
+                options={{
+                      fillColor: getZoneColor(zoneType),
+                      fillOpacity: 0.75,
+                  strokeColor: '#FFFFFF',
+                      strokeOpacity: 0.8,
+                      strokeWeight: 2,
+                }}
+                // Removed onClick handler - zoning details now only available via legend info icon
+              />
+                );
+              });
+            }
+            return null;
+          })()}
 
           {/* Render search result markers */}
           {searchResults?.results?.parcels?.map((parcel: Parcel, index: number) => (
