@@ -10,6 +10,7 @@ interface SearchResultsProps {
   onToggleMinimize: () => void;
   onCompareLocations?: (parcels: any[]) => void;
   isLoadingBusinessRating?: boolean;
+  hasBusinessRatingData?: boolean;
 }
 
 export const SearchResults: React.FC<SearchResultsProps> = ({
@@ -20,6 +21,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   onToggleMinimize,
   onCompareLocations,
   isLoadingBusinessRating = false,
+  hasBusinessRatingData = false,
 }) => {
 
   if (!results) return null;
@@ -116,7 +118,13 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                       {isLoadingBusinessRating && (
                         <div className="flex items-center space-x-1 text-blue-400 text-xs">
                           <div className="animate-spin h-3 w-3 border border-blue-400 border-t-transparent rounded-full"></div>
-                          <span>Auto-analyzing...</span>
+                          <span>Preparing...</span>
+                        </div>
+                      )}
+                      {!isLoadingBusinessRating && hasBusinessRatingData && (
+                        <div className="flex items-center space-x-1 text-green-400 text-xs">
+                          <div className="h-2 w-2 bg-green-400 rounded-full"></div>
+                          <span>Ready</span>
                         </div>
                       )}
                       <button
@@ -125,12 +133,14 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                         className={`flex items-center space-x-1 px-2 py-1 text-white text-xs rounded transition-colors ${
                           isLoadingBusinessRating 
                             ? 'bg-gray-600 cursor-not-allowed' 
+                            : hasBusinessRatingData
+                            ? 'bg-green-600 hover:bg-green-700 ring-2 ring-green-400 ring-opacity-50'
                             : 'bg-green-600 hover:bg-green-700'
                         }`}
-                        title="Compare business potential of all parcels"
+                        title={hasBusinessRatingData ? "View prepared business comparison" : "Compare business potential of all parcels"}
                       >
                         <TrendingUp size={12} />
-                        <span>Compare Locations</span>
+                        <span>{hasBusinessRatingData ? "View Rankings" : "Compare Locations"}</span>
                       </button>
                     </div>
                   )}
