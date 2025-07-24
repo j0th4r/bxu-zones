@@ -25,20 +25,14 @@ export class AzureOpenAIService {
   /**
    * Process a zoning search query using Azure OpenAI
    * @param query - User's search query
-   * @param forceRefresh - Bypass cache and force fresh data
    * @returns Promise<SearchResult> - Structured search results
    */
-  async searchWithAI(query: string, forceRefresh: boolean = false): Promise<SearchResult> {
-    // Check cache first (unless force refresh is requested)
-    if (!forceRefresh) {
-      const cachedResult = globalCacheManager.getSearchResults(query);
-      if (cachedResult) {
-        console.log('🎯 Using cached search result for:', query);
-        return cachedResult;
-      }
-    } else {
-      globalCacheManager.forceRefreshSearchResults(query);
-      console.log('🔄 Force refresh: bypassing cache for search:', query);
+  async searchWithAI(query: string): Promise<SearchResult> {
+    // Check cache first
+    const cachedResult = globalCacheManager.getSearchResults(query);
+    if (cachedResult) {
+      console.log('🎯 Using cached search result for:', query);
+      return cachedResult;
     }
 
     console.log('🔍 Processing new search query:', query);
@@ -69,11 +63,18 @@ Analyze this query in the context of Butuan City zoning regulations and provide:
 6. If the user is essentially asking "what can I build here" or "what businesses can I establish", also include at least three concrete example business/use suggestions in the highlights list.
 
 Important Butuan City landmarks with coordinates for reference:
-- City Center/Capitol: [125.5431, 8.9512]
-- J.C. Aquino Avenue (main commercial): [125.5400, 8.9500]
-- National Highway: [125.5350, 8.9450]
-- Butuan Bay area: [125.5200, 8.9600]
-- University area: [125.5500, 8.9400]
+- Near Butuan City Hall Complex: [8.953611, 125.529194]
+- J.C. Aquino Avenue (main commercial): [125.5230631, 8.943059]
+- National Highway: [125.6023856, 8.9614707]
+- Butuan Bay area: [125.5427666, 8.9514169]
+- Near University Area: [125.5421062, 8.9464374]
+- Near Saint Joseph Institute Technology Area: [125.5419917, 8.9515949]
+- Bancasi Airport (Butuan Airport, IATA: BXU): [8.951470, 125.478820] 
+- Butuan City Public Market: [8.957238, 125.533775]
+- Libertad Public Market: [8.943920, 125.503480] 
+- Ampayon Public Market: [8.959700, 125.602790]
+- Langihan Public Market: [8.956944, 125.533889]
+- Near Caraga State University (Ampayon Campus): [8.956500, 125.596400]
 
 Formatting rules
 
@@ -338,17 +339,12 @@ Example output:
    * }
    * @param location Free-form location string (address or description of the clicked spot)
    */
-  async getNearestSuppliers(location: string, need?: string, forceRefresh: boolean = false): Promise<SuppliersResponse> {
-    // Check cache first (unless force refresh is requested)
-    if (!forceRefresh) {
-      const cachedSuppliers = globalCacheManager.getSuppliers(location, need);
-      if (cachedSuppliers) {
-        console.log('🎯 Using cached suppliers for:', location, need || 'general');
-        return cachedSuppliers;
-      }
-    } else {
-      globalCacheManager.forceRefreshSuppliers(location, need);
-      console.log('🔄 Force refresh: bypassing cache for suppliers:', location);
+  async getNearestSuppliers(location: string, need?: string): Promise<SuppliersResponse> {
+    // Check cache first
+    const cachedSuppliers = globalCacheManager.getSuppliers(location, need);
+    if (cachedSuppliers) {
+      console.log('🎯 Using cached suppliers for:', location, need || 'general');
+      return cachedSuppliers;
     }
 
     console.log('🔍 Fetching new suppliers for:', location, need || 'general');

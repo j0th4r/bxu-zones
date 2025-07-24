@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useState, useRef } from 'react';
 import { GoogleMap, LoadScript, Polygon, Marker } from '@react-google-maps/api';
-import { ZoningDistrict, Parcel } from '../types/zoning';
+import { Parcel } from '../types/zoning';
 import { ZoningAPI } from '../utils/api';
 import { getZoneColor } from '../config/zoning-colors';
 import { GOOGLE_MAPS_CONFIG } from '../config/google-maps';
@@ -8,6 +8,13 @@ import '../styles/map-cursors.css';
 
 // Shared zoning areas dataset
 import { zoningAreas as zoningData } from '../data/zoningAreas';
+
+// Extend window type for our logging flag
+declare global {
+  interface Window {
+    zoningAreasLogged?: boolean;
+  }
+}
 
 // Butuan City center coordinates
 const BUTUAN_CENTER = GOOGLE_MAPS_CONFIG.defaultCenter;
@@ -65,7 +72,6 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
   currentMapStyle = GOOGLE_MAPS_CONFIG.mapStyles.default,
   centerCoordinates = null,
 }, ref) => {
-  const [zoningDistricts, setZoningDistricts] = useState<ZoningDistrict[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapLayers, setMapLayers] = useState(GOOGLE_MAPS_CONFIG.mapLayers);
@@ -99,15 +105,6 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
   useEffect(() => {
     console.log(`Loaded ${zoningData.length} zoning areas`);
   }, []);
-
-  // Trigger rendering of zoning areas when map is fully loaded
-  useEffect(() => {
-    if (mapFullyLoaded && map) {
-      console.log('Map is fully loaded, ready to render zoning areas');
-      // Force a re-render to ensure zoning areas are displayed
-      setZoningDistricts([...zoningDistricts]);
-    }
-  }, [mapFullyLoaded, map, zoningDistricts]);
 
   useEffect(() => {
     loadZoningData();
@@ -201,8 +198,8 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
 
   const loadZoningData = async () => {
     try {
-      const districts = await ZoningAPI.getZoningDistricts();
-      setZoningDistricts(districts);
+      await ZoningAPI.getZoningDistricts();
+      // Data loaded successfully (used for initial loading state)
       setIsLoading(false);
     } catch (error) {
       console.error('Error loading zoning data:', error);
@@ -258,9 +255,13 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
           {/* Render zoning polygons */}
           {(() => {
             if (mapFullyLoaded && (layerVisibility['Zoning Districts'] === undefined || layerVisibility['Zoning Districts'] !== false)) {
-              console.log(`Rendering ${zoningAreas.length} zoning polygons...`);
+              // Only log once when first rendering zones
+              if (zoningAreas.length > 0 && !window.zoningAreasLogged) {
+                console.log(`✅ Loaded ${zoningAreas.length} zoning areas for display`);
+                window.zoningAreasLogged = true;
+              }
               return zoningAreas.map((feature) => {
-                const { id, zoneType, objectId } = feature.properties;
+                const { id, zoneType, zoneName, description, address, objectId } = feature.properties;
                 const path = feature.geometry.coordinates[0].map(([lng, lat]) => ({ lat, lng }));
                 return (
               <Polygon
@@ -273,7 +274,22 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
                       strokeOpacity: 0.8,
                       strokeWeight: 2,
                 }}
-                // Removed onClick handler - zoning details now only available via legend info icon
+                onClick={() => {
+                  const mockParcel: Parcel = {
+                        id,
+                        address,
+                        zoneId: zoneType,
+                    geometry: null,
+                    attributes: {
+                          OBJECTID: objectId,
+                          ZONE_NAME: zoneName,
+                          ZONE_TYPE: zoneType,
+                          DESCRIPTION: description,
+                          ADDRESS: address,
+                    },
+                  };
+                  onParcelClick(mockParcel);
+                }}
               />
                 );
               });
