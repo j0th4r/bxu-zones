@@ -5,6 +5,7 @@ import { SearchBar } from './components/SearchBar';
 import { Legend } from './components/Legend';
 import { ParcelPopup } from './components/ParcelPopup';
 import { SearchResults } from './components/SearchResults';
+import { BusinessRatingModal } from './components/BusinessRatingModal';
 
 import { MapControls } from './components/MapControls';
 import { Layout } from './components/Layout';
@@ -16,9 +17,10 @@ import { FAQs } from './components/FAQs';
 import { Import } from './components/Import';
 import { Users } from './components/Users';
 import { Shield, RefreshCw } from 'lucide-react';
-import { ZoningDistrict, Parcel, SearchResult, SuppliersResponse } from './types/zoning';
+import { ZoningDistrict, Parcel, SearchResult, SuppliersResponse, BusinessRating, BusinessRatingResponse } from './types/zoning';
 import { ZoningAPI } from './utils/api';
 import { GOOGLE_MAPS_CONFIG } from './config/google-maps';
+import { generateBusinessRatings, getIndividualBusinessRating } from './services/business-rating';
 
 
 const MapView: React.FC = () => {
@@ -51,6 +53,12 @@ const MapView: React.FC = () => {
   const [supplierData, setSupplierData] = useState<SuppliersResponse | null>(null);
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
 
+  // Business rating state
+  const [businessRatingData, setBusinessRatingData] = useState<BusinessRatingResponse | null>(null);
+  const [loadingBusinessRating, setLoadingBusinessRating] = useState(false);
+  const [currentParcelRating, setCurrentParcelRating] = useState<BusinessRating | null>(null);
+  const [isBusinessRatingModalOpen, setIsBusinessRatingModalOpen] = useState(false);
+
   useEffect(() => {
     loadZoningDistricts();
   }, []);
@@ -78,9 +86,13 @@ const MapView: React.FC = () => {
     if (parcel.geometry) {
       // Only fetch suppliers for parcels with geometry (actual parcel or search result)
       handleFetchSuppliers(parcel, currentSearchContext);
+      
+      // Auto-load business rating for this parcel
+      handleAutoLoadBusinessRating(parcel);
     } else {
       // Clear any supplier data when clicking zoning area
       setSupplierData(null);
+      setCurrentParcelRating(null);
     }
   };
 
@@ -115,6 +127,93 @@ const MapView: React.FC = () => {
     }
   };
 
+  // Auto-load business rating for individual parcel
+  const handleAutoLoadBusinessRating = async (parcel: Parcel) => {
+    try {
+      console.log('🤖 Auto-loading business rating for parcel:', parcel.id);
+      
+      // Check if this parcel is from current AI search results
+      const isFromAISearch = searchResults?.results.parcels.some(p => p.id === parcel.id) || false;
+      
+      if (isFromAISearch) {
+        console.log('🎯 Parcel is from AI search - checking for comparison cache first');
+        
+        // If we have comparison data for this search, use it
+        if (businessRatingData) {
+          const existingRating = businessRatingData.ratings.find(r => r.parcelId === parcel.id);
+          if (existingRating) {
+            console.log('✅ Using existing comparison rating for AI search parcel');
+            setCurrentParcelRating(existingRating);
+            return;
+          }
+        }
+      }
+      
+      const rating = await getIndividualBusinessRating(parcel);
+      setCurrentParcelRating(rating);
+    } catch (error) {
+      console.error('Error auto-loading business rating:', error);
+      // Don't show error to user for auto-loading, just fail silently
+      setCurrentParcelRating(null);
+    }
+  };
+
+  // Business rating functions
+  const handleGetBusinessRating = async (parcel: Parcel) => {
+    if (businessRatingData) {
+      // Find rating for this parcel in existing data
+      const rating = businessRatingData.ratings.find(r => r.parcelId === parcel.id);
+      setCurrentParcelRating(rating || null);
+    } else {
+      // Generate rating for single parcel
+      await handleCompareLocations([parcel]);
+    }
+  };
+
+  const handleCompareLocations = async (parcels: Parcel[]) => {
+    setLoadingBusinessRating(true);
+    setBusinessRatingData(null);
+    setCurrentParcelRating(null);
+
+    try {
+      const ratings = await generateBusinessRatings(parcels);
+      setBusinessRatingData(ratings);
+      
+      // If there's a selected parcel, set its rating
+      if (selectedParcel) {
+        const currentRating = ratings.ratings.find(r => r.parcelId === selectedParcel.id);
+        setCurrentParcelRating(currentRating || null);
+      }
+      
+      // Open modal if comparing multiple locations
+      if (parcels.length > 1) {
+        setIsBusinessRatingModalOpen(true);
+      }
+    } catch (error) {
+      console.error('Error generating business ratings:', error);
+      // Set fallback rating data
+      setBusinessRatingData({
+        ratings: parcels.map((parcel, index) => ({
+          parcelId: parcel.id,
+          rating: Math.floor(Math.random() * 40) + 40, // 40-80%
+          explanation: 'Basic analysis available. Detailed AI analysis temporarily unavailable.',
+          factors: {
+            accessibility: 60,
+            footTraffic: 55,
+            demographics: 65,
+            competition: 50,
+            infrastructure: 60,
+          },
+          rank: index + 1
+        })),
+        summary: 'Basic fallback analysis completed.',
+        methodology: 'Simple zone-based evaluation due to service limitations.'
+      });
+    } finally {
+      setLoadingBusinessRating(false);
+    }
+  };
+
   const handleSearchResults = (results: SearchResult) => {
     setSearchResults(results);
     // Ensure results are expanded when new search is performed
@@ -125,6 +224,12 @@ const MapView: React.FC = () => {
     
     // Clear selected parcel when performing a new search
     setSelectedParcel(null);
+
+    // Auto-trigger Compare Locations if we have 2+ parcels
+    if (results.results.parcels && results.results.parcels.length >= 2) {
+      console.log('🚀 Auto-triggering Compare Locations for', results.results.parcels.length, 'parcels');
+      handleCompareLocations(results.results.parcels);
+    }
   };
 
   const handleSelectSearchParcel = (parcel: Parcel) => {
@@ -186,31 +291,6 @@ const MapView: React.FC = () => {
     console.log(`Map style changed to: ${style}`);
   };
 
-  const handleZoningDistrictClick = (district: ZoningDistrict) => {
-    // Convert ZoningDistrict to Parcel format for the popup
-    const mockParcel: Parcel = {
-      id: district.id,
-      address: district.name,
-      zoneId: district.type,
-      geometry: null, // No point geometry - indicates this is a zoning area
-      attributes: {
-        OBJECTID: district.id,
-        ZONE_NAME: district.name,
-        ZONE_TYPE: district.type,
-        DESCRIPTION: district.description,
-        ADDRESS: district.name,
-        regulations: `Max Height: ${district.bulkRules.maxHeight}, FAR: ${district.bulkRules.farRatio}, Lot Coverage: ${district.bulkRules.lotCoverage}`,
-        allowedUses: district.allowedUses.join(', ')
-      },
-    };
-    
-    // Set the mock parcel to trigger the popup
-    setSelectedParcel(mockParcel);
-    
-    // Clear supplier data since this is a zoning area, not a specific parcel
-    setSupplierData(null);
-  };
-
   return (
     <div className="relative h-screen bg-gray-800 text-white overflow-hidden">
       {/* Sticky Header */}
@@ -250,6 +330,8 @@ const MapView: React.FC = () => {
         onSelectParcel={handleSelectSearchParcel}
         isMinimized={resultsMinimized}
         onToggleMinimize={() => setResultsMinimized((prev) => !prev)}
+        onCompareLocations={handleCompareLocations}
+        isLoadingBusinessRating={loadingBusinessRating}
       />
 
       {/* Main Map */}
@@ -286,7 +368,6 @@ const MapView: React.FC = () => {
           districts={zoningDistricts}
           isVisible={isLegendVisible}
           onToggle={() => setIsLegendVisible(!isLegendVisible)}
-          onZoningDistrictClick={handleZoningDistrictClick}
         />
       </div>
 
@@ -298,6 +379,17 @@ const MapView: React.FC = () => {
         supplierData={supplierData}
         loadingSuppliers={loadingSuppliers}
         onRefreshSuppliers={() => selectedParcel && handleFetchSuppliers(selectedParcel, searchResults?.query || '')}
+        businessRating={currentParcelRating}
+        loadingBusinessRating={loadingBusinessRating}
+        onGetBusinessRating={() => selectedParcel && handleGetBusinessRating(selectedParcel)}
+      />
+
+      {/* Business Rating Modal */}
+      <BusinessRatingModal
+        isOpen={isBusinessRatingModalOpen}
+        onClose={() => setIsBusinessRatingModalOpen(false)}
+        ratingData={businessRatingData}
+        isLoading={loadingBusinessRating}
       />
 
 

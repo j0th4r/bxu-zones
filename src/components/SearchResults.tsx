@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {CheckCircle, Minus, Maximize2, Shield, Download} from 'lucide-react';
+import {CheckCircle, Minus, Maximize2, Shield, Download, TrendingUp} from 'lucide-react';
 import {SearchResult, SafetyRequirement} from '../types/zoning';
 
 interface SearchResultsProps {
@@ -8,6 +8,8 @@ interface SearchResultsProps {
   onSelectParcel?: (parcel: any) => void;
   isMinimized: boolean;
   onToggleMinimize: () => void;
+  onCompareLocations?: (parcels: any[]) => void;
+  isLoadingBusinessRating?: boolean;
 }
 
 export const SearchResults: React.FC<SearchResultsProps> = ({
@@ -16,6 +18,8 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   onSelectParcel,
   isMinimized,
   onToggleMinimize,
+  onCompareLocations,
+  isLoadingBusinessRating = false,
 }) => {
 
   if (!results) return null;
@@ -103,9 +107,34 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
 
             {results.results.parcels.length > 0 && (
               <div className="border-t border-gray-700 pt-3">
-                <h4 className="text-white font-medium text-sm mb-2">
-                  Found {results.results.parcels.length} parcel(s)
-                </h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-white font-medium text-sm">
+                    Found {results.results.parcels.length} parcel(s)
+                  </h4>
+                  {results.results.parcels.length >= 2 && onCompareLocations && (
+                    <div className="flex items-center space-x-2">
+                      {isLoadingBusinessRating && (
+                        <div className="flex items-center space-x-1 text-blue-400 text-xs">
+                          <div className="animate-spin h-3 w-3 border border-blue-400 border-t-transparent rounded-full"></div>
+                          <span>Auto-analyzing...</span>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => onCompareLocations(results.results.parcels)}
+                        disabled={isLoadingBusinessRating}
+                        className={`flex items-center space-x-1 px-2 py-1 text-white text-xs rounded transition-colors ${
+                          isLoadingBusinessRating 
+                            ? 'bg-gray-600 cursor-not-allowed' 
+                            : 'bg-green-600 hover:bg-green-700'
+                        }`}
+                        title="Compare business potential of all parcels"
+                      >
+                        <TrendingUp size={12} />
+                        <span>Compare Locations</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <div className="space-y-3 max-h-60 overflow-y-auto">
                   {results.results.parcels.map((parcel) => (
                     <div

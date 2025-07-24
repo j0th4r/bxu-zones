@@ -1,7 +1,7 @@
 import { AzureOpenAI } from 'openai';
 import { AZURE_OPENAI_CONFIG } from '../config/azure-openai';
-import { SearchResult } from '../types/zoning';
-import { SupplierInfo, SuppliersResponse } from '../types/zoning';
+import { SearchResult, SuppliersResponse } from '../types/zoning';
+import { globalCacheManager } from './cache-manager';
 
 /**
  * Azure OpenAI Service for handling AI-powered zoning search queries
@@ -25,13 +25,31 @@ export class AzureOpenAIService {
   /**
    * Process a zoning search query using Azure OpenAI
    * @param query - User's search query
+   * @param forceRefresh - Bypass cache and force fresh data
    * @returns Promise<SearchResult> - Structured search results
    */
-  async searchWithAI(query: string): Promise<SearchResult> {
+  async searchWithAI(query: string, forceRefresh: boolean = false): Promise<SearchResult> {
+    // Check cache first (unless force refresh is requested)
+    if (!forceRefresh) {
+      const cachedResult = globalCacheManager.getSearchResults(query);
+      if (cachedResult) {
+        console.log('🎯 Using cached search result for:', query);
+        return cachedResult;
+      }
+    } else {
+      globalCacheManager.forceRefreshSearchResults(query);
+      console.log('🔄 Force refresh: bypassing cache for search:', query);
+    }
+
+    console.log('🔍 Processing new search query:', query);
+
     // Check if we should use backend proxy instead of direct calls
     if (AZURE_OPENAI_CONFIG.useBackendProxy) {
       console.log('Using backend proxy for AI search');
-      return this.searchViaBackend(query);
+      const result = await this.searchViaBackend(query);
+      // Cache the result
+      globalCacheManager.setSearchResults(query, result);
+      return result;
     }
 
     console.log('Using direct Azure OpenAI connection');
@@ -182,6 +200,9 @@ Example output:
         }
       };
 
+      // Cache the successful result
+      globalCacheManager.setSearchResults(query, searchResult);
+      
       return searchResult;
 
     } catch (error) {
@@ -317,7 +338,21 @@ Example output:
    * }
    * @param location Free-form location string (address or description of the clicked spot)
    */
-  async getNearestSuppliers(location: string, need?: string): Promise<SuppliersResponse> {
+  async getNearestSuppliers(location: string, need?: string, forceRefresh: boolean = false): Promise<SuppliersResponse> {
+    // Check cache first (unless force refresh is requested)
+    if (!forceRefresh) {
+      const cachedSuppliers = globalCacheManager.getSuppliers(location, need);
+      if (cachedSuppliers) {
+        console.log('🎯 Using cached suppliers for:', location, need || 'general');
+        return cachedSuppliers;
+      }
+    } else {
+      globalCacheManager.forceRefreshSuppliers(location, need);
+      console.log('🔄 Force refresh: bypassing cache for suppliers:', location);
+    }
+
+    console.log('🔍 Fetching new suppliers for:', location, need || 'general');
+
     try {
       const userPrompt = `The user clicked the map at or near: "${location}".
 User's interest/query: ${need ? `"${need}"` : 'Not specified'}
@@ -438,11 +473,16 @@ Return ONLY valid JSON with this EXACT structure:
       // Limit to maximum 5 suppliers
       const limitedSuppliers = suppliers.slice(0, 5);
 
-      return {
+      const suppliersResponse: SuppliersResponse = {
         suppliers: limitedSuppliers,
         searchLocation: location,
         contextQuery: need
       };
+
+      // Cache the successful result
+      globalCacheManager.setSuppliers(location, need, suppliersResponse);
+
+      return suppliersResponse;
     } catch (error) {
       console.error('Azure OpenAI supplier lookup error:', error);
       // Provide context-aware fallback suppliers
@@ -497,7 +537,40 @@ Return ONLY valid JSON with this EXACT structure:
       };
     }
   }
+
+  /**
+   * Generate AI response for general queries
+   * @param prompt - The prompt to send to AI
+   * @returns Promise<string> - AI response
+   */
+  async generateResponse(prompt: string): Promise<string> {
+    try {
+      const response = await this.client.chat.completions.create({
+        model: AZURE_OPENAI_CONFIG.deployment,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful AI assistant that provides accurate and detailed responses.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.7
+      });
+
+      return response.choices[0]?.message?.content || 'No response generated';
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      throw new Error('Failed to generate AI response');
+    }
+  }
 }
 
 // Export a singleton instance
-export const azureOpenAIService = new AzureOpenAIService(); 
+export const azureOpenAIService = new AzureOpenAIService();
+
+// Export convenience function for general AI responses
+export const generateAIResponse = (prompt: string) => azureOpenAIService.generateResponse(prompt); 

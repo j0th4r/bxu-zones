@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import {X, Building, MapPin, Info, Loader2, Phone, RefreshCw} from 'lucide-react';
-import {Parcel} from '../types/zoning';
+import {X, Building, MapPin, Info, Loader2, Phone, RefreshCw, TrendingUp, Star} from 'lucide-react';
+import {Parcel, BusinessRating} from '../types/zoning';
 import { SuppliersResponse } from '../types/zoning';
 import { StreetViewPreview } from './StreetViewPreview';
 import { StreetViewModal } from './StreetViewModal';
@@ -12,6 +12,9 @@ interface ParcelPopupProps {
   supplierData?: SuppliersResponse | null;
   loadingSuppliers?: boolean;
   onRefreshSuppliers?: () => void;
+  businessRating?: BusinessRating | null;
+  loadingBusinessRating?: boolean;
+  onGetBusinessRating?: () => void;
 }
 
 export const ParcelPopup: React.FC<ParcelPopupProps> = ({
@@ -20,7 +23,10 @@ export const ParcelPopup: React.FC<ParcelPopupProps> = ({
   contextQuery: _contextQuery = '', // Used for future AI-powered context features 
   supplierData, 
   loadingSuppliers = false, 
-  onRefreshSuppliers
+  onRefreshSuppliers,
+  businessRating,
+  loadingBusinessRating = false,
+  onGetBusinessRating
 }) => {
   const [isStreetViewModalOpen, setIsStreetViewModalOpen] = useState(false);
 
@@ -79,9 +85,7 @@ export const ParcelPopup: React.FC<ParcelPopupProps> = ({
                 </span>
               </div>
             </div>
-          )}
-
-          {/* Street View Preview - hide for zoning areas */}
+          )}          {/* Street View Preview - hide for zoning areas */}
           {!isZoningArea && (
             <StreetViewPreview
               address={parcel.address}
@@ -89,6 +93,87 @@ export const ParcelPopup: React.FC<ParcelPopupProps> = ({
               lng={parcel.geometry?.coordinates[0]}
               onPreviewClick={() => setIsStreetViewModalOpen(true)}
             />
+          )}
+
+          {/* Business Rating - hide for zoning areas */}
+          {!isZoningArea && (
+            <div className="space-y-2">              <div className="flex items-center justify-between">
+                <label className="text-gray-400">Business Potential</label>
+                {/* Refresh button is now optional since auto-loading is working */}
+                {onGetBusinessRating && businessRating && (
+                  <button
+                    onClick={onGetBusinessRating}
+                    className="text-gray-500 hover:text-gray-300 transition-colors opacity-50 hover:opacity-100"
+                    title="Refresh AI business rating"
+                  >
+                    <RefreshCw size={12} />
+                  </button>
+                )}
+              </div>
+              
+              {loadingBusinessRating ? (
+                <div className="flex items-center space-x-2 text-gray-300 text-sm">
+                  <Loader2 className="animate-spin" size={16} />
+                  <span>Analyzing business potential...</span>
+                </div>
+              ) : businessRating ? (
+                <div className="bg-gray-700/50 rounded-lg p-3 border-l-2 border-green-400">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Star size={16} className={businessRating.rating >= 80 ? 'text-green-400' : businessRating.rating >= 60 ? 'text-yellow-400' : 'text-orange-400'} />
+                      <span className="text-white font-semibold">
+                        {businessRating.rating}% Business Score
+                      </span>
+                    </div>
+                    <div className={`px-2 py-1 rounded text-xs font-bold ${
+                      businessRating.rank === 1 ? 'bg-yellow-500 text-black' :
+                      businessRating.rank === 2 ? 'bg-gray-400 text-black' :
+                      businessRating.rank === 3 ? 'bg-orange-500 text-black' :
+                      'bg-gray-600 text-white'
+                    }`}>
+                      Rank #{businessRating.rank}
+                    </div>
+                  </div>
+                  <p className="text-gray-300 text-sm mb-3">{businessRating.explanation}</p>
+                  
+                  {/* Mini factor bars */}
+                  <div className="grid grid-cols-5 gap-2 text-xs">
+                    {Object.entries(businessRating.factors).map(([factor, value]) => (
+                      <div key={factor} className="text-center">
+                        <div className={`text-xs font-semibold ${
+                          value >= 80 ? 'text-green-400' :
+                          value >= 60 ? 'text-yellow-400' :
+                          value >= 40 ? 'text-orange-400' :
+                          'text-red-400'
+                        }`}>
+                          {value}%
+                        </div>
+                        <div className="text-gray-400 capitalize text-xs">
+                          {factor.replace(/([A-Z])/g, ' $1').trim()}
+                        </div>
+                        <div className="w-full bg-gray-600 rounded-full h-1 mt-1">
+                          <div
+                            className={`h-1 rounded-full ${
+                              value >= 80 ? 'bg-green-400' :
+                              value >= 60 ? 'bg-yellow-400' :
+                              value >= 40 ? 'bg-orange-400' :
+                              'bg-red-400'
+                            }`}
+                            style={{ width: `${value}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>              ) : (
+                <div className="flex items-center justify-center p-4 bg-gray-700/30 rounded-lg border-2 border-dashed border-gray-600">
+                  <div className="text-center">
+                    <TrendingUp size={24} className="text-gray-500 mx-auto mb-2" />
+                    <p className="text-gray-400 text-sm">AI business analysis will load automatically</p>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Supplier info section - hide for zoning areas */}

@@ -70,3 +70,35 @@ export interface SuppliersResponse {
   /** The context query used for the search */
   contextQuery?: string;
 }
+
+// Business rating for parcels
+export interface BusinessRating {
+  /** Parcel ID */
+  parcelId: string;
+  /** Parcel address for display */
+  address: string;
+  /** Rating percentage (0-100) */
+  rating: number;
+  /** AI-generated explanation for the rating */
+  explanation: string;
+  /** Factors that influenced the rating */
+  factors: {
+    accessibility: number;
+    footTraffic: number;
+    demographics: number;
+    competition: number;
+    infrastructure: number;
+  };
+  /** Overall ranking among compared parcels (1 = best) */
+  rank: number;
+}
+
+// Business rating comparison response
+export interface BusinessRatingResponse {
+  /** Array of parcel ratings */
+  ratings: BusinessRating[];
+  /** Summary of the comparison */
+  summary: string;
+  /** Analysis methodology used */
+  methodology: string;
+}
