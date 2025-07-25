@@ -21,6 +21,7 @@ import { ZoningDistrict, Parcel, SearchResult, SuppliersResponse, BusinessRating
 import { ZoningAPI } from './utils/api';
 import { GOOGLE_MAPS_CONFIG } from './config/google-maps';
 import { generateBusinessRatings, getIndividualBusinessRating } from './services/business-rating';
+import { azureOpenAIService } from './services/azure-openai';
 import { globalCacheManager } from './services/cache-manager';
 
 
@@ -28,8 +29,10 @@ const MapView: React.FC = () => {
   const navigate = useNavigate();
   const [zoningDistricts, setZoningDistricts] = useState<
     ZoningDistrict[]
-  >([]);
-  const [selectedParcel, setSelectedParcel] = useState<Parcel | null>(
+  >([]);  const [selectedParcel, setSelectedParcel] = useState<Parcel | null>(
+    null
+  );
+  const [highlightedMarkerParcel, setHighlightedMarkerParcel] = useState<Parcel | null>(
     null
   );
   const [searchResults, setSearchResults] =
@@ -53,12 +56,15 @@ const MapView: React.FC = () => {
   // Supplier state - persists across popup close/open cycles
   const [supplierData, setSupplierData] = useState<SuppliersResponse | null>(null);
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
-
   // Business rating state
   const [businessRatingData, setBusinessRatingData] = useState<BusinessRatingResponse | null>(null);
   const [loadingBusinessRating, setLoadingBusinessRating] = useState(false);
   const [currentParcelRating, setCurrentParcelRating] = useState<BusinessRating | null>(null);
   const [isBusinessRatingModalOpen, setIsBusinessRatingModalOpen] = useState(false);
+
+  // Floor area state
+  const [parcelFloorArea, setParcelFloorArea] = useState<Record<string, string>>({});
+  const [loadingFloorArea, setLoadingFloorArea] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadZoningDistricts();
@@ -73,13 +79,12 @@ const MapView: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleParcelClick = (parcel: Parcel) => {
+  };  const handleParcelClick = (parcel: Parcel) => {
     // Store the parcel and search context
     const currentSearchContext = searchResults?.query || '';
     
     setSelectedParcel(parcel);
+    setHighlightedMarkerParcel(parcel); // Highlight the clicked marker
     // Minimize AI search results when user clicks a parcel on the map
     setResultsMinimized(true);
     
@@ -90,6 +95,8 @@ const MapView: React.FC = () => {
       
       // Auto-load business rating for this parcel
       handleAutoLoadBusinessRating(parcel);
+        // Generate floor area for this parcel with business context
+      handleGenerateFloorArea(parcel, currentSearchContext);
     } else {
       // Clear any supplier data when clicking zoning area
       setSupplierData(null);
@@ -305,7 +312,6 @@ const MapView: React.FC = () => {
       setLoadingBusinessRating(false);
     }
   };
-
   const handleSearchResults = (results: SearchResult) => {
     setSearchResults(results);
     // Ensure results are expanded when new search is performed
@@ -316,6 +322,9 @@ const MapView: React.FC = () => {
     
     // Clear selected parcel when performing a new search
     setSelectedParcel(null);
+    
+    // Clear highlighted marker when performing a new search
+    setHighlightedMarkerParcel(null);
 
     // Auto-prepare business ratings in background if we have 2+ parcels (no modal)
     if (results.results.parcels && results.results.parcels.length >= 2) {
@@ -329,7 +338,6 @@ const MapView: React.FC = () => {
       handlePrepareSuppliers(results.results.parcels, results.query);
     }
   };
-
   const handleSelectSearchParcel = (parcel: Parcel) => {
     // If parcel geometry coordinates provided, center map
     if (parcel.geometry && parcel.geometry.coordinates) {
@@ -339,7 +347,9 @@ const MapView: React.FC = () => {
       const coords = parcel.attributes.coordinates as [number, number];
       setCenterCoords([...coords] as [number, number]);
     }
-    // Do not open parcel details; just recenter the map
+    // Highlight the selected marker without opening popup
+    setHighlightedMarkerParcel(parcel);
+    // Do not open parcel details; just recenter the map and highlight marker
     if (selectedParcel) {
       setSelectedParcel(null);
     }
@@ -383,10 +393,100 @@ const MapView: React.FC = () => {
     console.log(`Starting AI analysis: ${type}`);
     // This would trigger AI analysis of the current map view
   };
-
   const handleMapStyleChange = (style: string) => {
     setCurrentMapStyle(style);
     console.log(`Map style changed to: ${style}`);
+  };
+
+  const handleMapClick = () => {
+    // Clear highlighted marker when clicking on empty map areas
+    if (highlightedMarkerParcel) {
+      setHighlightedMarkerParcel(null);
+    }
+  };
+  // Generate floor area for a parcel
+  const handleGenerateFloorArea = async (parcel: Parcel, businessContext?: string) => {
+    // Check if we already have floor area for this parcel with this context
+    const contextKey = `${parcel.id}-${businessContext || 'general'}`;
+    if (parcelFloorArea[contextKey]) {
+      return parcelFloorArea[contextKey];
+    }
+
+    // Check if already loading
+    if (loadingFloorArea[parcel.id]) {
+      return;
+    }
+
+    try {
+      setLoadingFloorArea(prev => ({ ...prev, [parcel.id]: true }));
+      console.log('🏢 Generating floor area for parcel:', parcel.id, 'with business context:', businessContext || 'general');
+      
+      const floorArea = await azureOpenAIService.generateFloorArea(parcel, businessContext);
+      
+      setParcelFloorArea(prev => ({ ...prev, [contextKey]: floorArea }));
+      console.log('✅ Generated floor area:', floorArea);
+      
+      return floorArea;
+    } catch (error) {
+      console.error('Error generating floor area:', error);
+      // Set fallback floor area based on business context
+      const fallbackArea = getFallbackFloorAreaByBusiness(parcel.zoneId, businessContext);
+      setParcelFloorArea(prev => ({ ...prev, [contextKey]: fallbackArea }));
+      return fallbackArea;
+    } finally {
+      setLoadingFloorArea(prev => ({ ...prev, [parcel.id]: false }));
+    }
+  };
+
+  // Helper function to get fallback floor area based on business type
+  const getFallbackFloorAreaByBusiness = (zoneId: string, businessContext?: string): string => {
+    const business = businessContext?.toLowerCase() || '';
+    
+    // Business-specific floor areas
+    if (business.includes('coffee') || business.includes('café') || business.includes('cafe')) {
+      return `${Math.floor(Math.random() * 10) + 5} square meters`; // 5-15 sq m
+    }
+    if (business.includes('restaurant') || business.includes('food') || business.includes('dining')) {
+      return `${Math.floor(Math.random() * 100) + 50} square meters`; // 50-150 sq m
+    }
+    if (business.includes('retail') || business.includes('store') || business.includes('shop')) {
+      return `${Math.floor(Math.random() * 80) + 20} square meters`; // 20-100 sq m
+    }
+    if (business.includes('office') || business.includes('coworking') || business.includes('workspace')) {
+      return `${Math.floor(Math.random() * 150) + 50} square meters`; // 50-200 sq m
+    }
+    if (business.includes('clinic') || business.includes('medical') || business.includes('health')) {
+      return `${Math.floor(Math.random() * 80) + 30} square meters`; // 30-110 sq m
+    }
+    if (business.includes('gym') || business.includes('fitness') || business.includes('workout')) {
+      return `${Math.floor(Math.random() * 300) + 100} square meters`; // 100-400 sq m
+    }
+    if (business.includes('salon') || business.includes('beauty') || business.includes('spa')) {
+      return `${Math.floor(Math.random() * 60) + 20} square meters`; // 20-80 sq m
+    }
+    if (business.includes('bakery') || business.includes('pastry')) {
+      return `${Math.floor(Math.random() * 40) + 15} square meters`; // 15-55 sq m
+    }
+    if (business.includes('internet cafe') || business.includes('computer shop')) {
+      return `${Math.floor(Math.random() * 70) + 30} square meters`; // 30-100 sq m
+    }
+    if (business.includes('laundry') || business.includes('dry clean')) {
+      return `${Math.floor(Math.random() * 50) + 25} square meters`; // 25-75 sq m
+    }
+    
+    // Zone-based fallback if no business context
+    const zoneType = zoneId?.toLowerCase() || '';
+    if (zoneType.includes('c-1') || zoneType.includes('commercial')) {
+      return `${Math.floor(Math.random() * 200) + 150} square meters`;
+    } else if (zoneType.includes('mu') || zoneType.includes('mixed')) {
+      return `${Math.floor(Math.random() * 150) + 120} square meters`;
+    } else if (zoneType.includes('r-1') || zoneType.includes('residential')) {
+      return `${Math.floor(Math.random() * 100) + 80} square meters`;
+    } else if (zoneType.includes('i-1') || zoneType.includes('industrial')) {
+      return `${Math.floor(Math.random() * 800) + 400} square meters`;
+    }
+    
+    return `${Math.floor(Math.random() * 120) + 100} square meters`;
   };
 
   return (
@@ -434,16 +534,17 @@ const MapView: React.FC = () => {
       />
 
       {/* Main Map */}
-      <main className="h-full pt-16">
-        <MapComponent
+      <main className="h-full pt-16">        <MapComponent
           ref={mapRef}
           onParcelClick={handleParcelClick}
+          onMapClick={handleMapClick}
           searchResults={searchResults}
           className="w-full h-full"
           layerVisibility={layerVisibility}
           activeMeasurementTool={activeMeasurementTool}
           currentMapStyle={currentMapStyle}
           centerCoordinates={centerCoords}
+          highlightedMarkerParcel={highlightedMarkerParcel}
         />
       </main>
 
@@ -468,12 +569,12 @@ const MapView: React.FC = () => {
           isVisible={isLegendVisible}
           onToggle={() => setIsLegendVisible(!isLegendVisible)}
         />
-      </div>
-
-      {/* Parcel Details Popup */}
-      <ParcelPopup
+      </div>      {/* Parcel Details Popup */}      <ParcelPopup
         parcel={selectedParcel}
-        onClose={() => setSelectedParcel(null)}
+        onClose={() => {
+          setSelectedParcel(null);
+          // Keep the marker highlighted even when closing the popup
+        }}
         contextQuery={searchResults?.query}
         supplierData={supplierData}
         loadingSuppliers={loadingSuppliers}
@@ -481,6 +582,8 @@ const MapView: React.FC = () => {
         businessRating={currentParcelRating}
         loadingBusinessRating={loadingBusinessRating}
         onGetBusinessRating={() => selectedParcel && handleGetBusinessRating(selectedParcel)}
+        floorArea={selectedParcel ? parcelFloorArea[`${selectedParcel.id}-${searchResults?.query || 'general'}`] : undefined}
+        loadingFloorArea={selectedParcel ? loadingFloorArea[selectedParcel.id] || false : false}
       />
 
       {/* Business Rating Modal */}

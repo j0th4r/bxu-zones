@@ -5,6 +5,7 @@ import { ZoningAPI } from '../utils/api';
 import { getZoneColor } from '../config/zoning-colors';
 import { GOOGLE_MAPS_CONFIG } from '../config/google-maps';
 import '../styles/map-cursors.css';
+import '../styles/marker-highlight.css';
 
 // Shared zoning areas dataset
 import { zoningAreas as zoningData } from '../data/zoningAreas';
@@ -62,6 +63,8 @@ interface MapComponentProps {
   activeMeasurementTool?: string | null;
   currentMapStyle?: string;
   centerCoordinates?: [number, number] | null;
+  highlightedMarkerParcel?: Parcel | null;
+  onMapClick?: () => void; // New prop for clearing highlights
 }
 
 export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
@@ -71,6 +74,8 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
   layerVisibility = {},
   currentMapStyle = GOOGLE_MAPS_CONFIG.mapStyles.default,
   centerCoordinates = null,
+  highlightedMarkerParcel = null,
+  onMapClick,
 }, ref) => {
   const [isLoading, setIsLoading] = useState(true);
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -98,13 +103,83 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
       objectId: number;
     };
   };
-
   const zoningAreas: ZoningFeature[] = zoningData as unknown as ZoningFeature[];
 
   // Log zoningAreas data for debugging
   useEffect(() => {
     console.log(`Loaded ${zoningData.length} zoning areas`);
   }, []);
+  // Create custom marker icons
+  const createMarkerIcon = (isHighlighted: boolean = false): google.maps.Icon => {
+    const size = isHighlighted ? 40 : 30;
+    const strokeWidth = isHighlighted ? 3 : 2;
+    const strokeColor = isHighlighted ? '#3b82f6' : '#1f2937';
+    const fillColor = isHighlighted ? '#60a5fa' : '#ef4444';
+    
+    // Create SVG icon with enhanced glow effect for highlighted markers
+    const svgIcon = `
+      <svg width="${size}" height="${size}" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          ${isHighlighted ? `
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <feMerge> 
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <filter id="outerGlow" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="6" result="outerColoredBlur"/>
+              <feMerge> 
+                <feMergeNode in="outerColoredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          ` : ''}
+        </defs>
+        ${isHighlighted ? `
+          <!-- Outer glow ring -->
+          <circle cx="15" cy="15" r="12" 
+                  fill="none" 
+                  stroke="${strokeColor}" 
+                  stroke-width="2"
+                  opacity="0.3"
+                  filter="url(#outerGlow)"
+          />
+        ` : ''}
+        <!-- Main marker circle -->
+        <circle cx="15" cy="15" r="10" 
+                fill="${fillColor}" 
+                stroke="${strokeColor}" 
+                stroke-width="${strokeWidth}"
+                ${isHighlighted ? 'filter="url(#glow)"' : ''}
+        />
+        <!-- Inner white dot -->
+        <circle cx="15" cy="15" r="3" fill="white" />
+        ${isHighlighted ? `
+          <!-- Additional highlight ring -->
+          <circle cx="15" cy="15" r="10" 
+                  fill="none" 
+                  stroke="${strokeColor}" 
+                  stroke-width="1"
+                  opacity="0.6"
+          />
+        ` : ''}
+      </svg>
+    `;
+    
+    return {
+      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svgIcon)}`,
+      scaledSize: new google.maps.Size(size, size),
+      anchor: new google.maps.Point(size / 2, size / 2),
+    };
+  };
+
+  // Check if a parcel is highlighted
+  const isParcelHighlighted = (parcel: Parcel): boolean => {
+    if (!highlightedMarkerParcel) return false;
+    return highlightedMarkerParcel.id === parcel.id;
+  };
 
   useEffect(() => {
     loadZoningData();
@@ -240,12 +315,12 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
         googleMapsClientId={undefined}
         preventGoogleFontsLoading={true}
         onError={onLoadError}
-      >
-        <GoogleMap
+      >        <GoogleMap
           mapContainerStyle={containerStyle}
           center={BUTUAN_CENTER}
           zoom={GOOGLE_MAPS_CONFIG.defaultZoom}
           onLoad={onLoad}
+          onClick={onMapClick} // Clear highlights when clicking on empty map
           options={{
             mapTypeId: currentMapStyle as google.maps.MapTypeId,
             ...defaultMapOptions,
@@ -295,9 +370,7 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
               });
             }
             return null;
-          })()}
-
-          {/* Render search result markers */}
+          })()}          {/* Render search result markers */}
           {searchResults?.results?.parcels?.map((parcel: Parcel, index: number) => (
             parcel.geometry && (
               <Marker
@@ -307,6 +380,8 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
                   lng: parcel.geometry.coordinates[0]
                 }}
                 onClick={() => onParcelClick(parcel)}
+                icon={createMarkerIcon(isParcelHighlighted(parcel))}
+                zIndex={isParcelHighlighted(parcel) ? 1000 : 100}
               />
             )
           ))}

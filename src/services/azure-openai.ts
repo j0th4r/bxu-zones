@@ -63,18 +63,19 @@ Analyze this query in the context of Butuan City zoning regulations and provide:
 6. If the user is essentially asking "what can I build here" or "what businesses can I establish", also include at least three concrete example business/use suggestions in the highlights list.
 
 Important Butuan City landmarks with coordinates for reference:
-- Near Butuan City Hall Complex: [8.953611, 125.529194]
 - J.C. Aquino Avenue (main commercial): [125.5230631, 8.943059]
 - National Highway: [125.6023856, 8.9614707]
 - Butuan Bay area: [125.5427666, 8.9514169]
-- Near University Area: [125.5421062, 8.9464374]
+- Near Father Saturnino Urios University and Agusan National High School Area: [125.5421062, 8.9464374]
 - Near Saint Joseph Institute Technology Area: [125.5419917, 8.9515949]
 - Bancasi Airport (Butuan Airport, IATA: BXU): [8.951470, 125.478820] 
 - Butuan City Public Market: [8.957238, 125.533775]
 - Libertad Public Market: [8.943920, 125.503480] 
 - Ampayon Public Market: [8.959700, 125.602790]
-- Langihan Public Market: [8.956944, 125.533889]
+- Near Father Saturnino Urios University Morelos Campus Area: [8.956944, 125.533889]
 - Near Caraga State University (Ampayon Campus): [8.956500, 125.596400]
+- Libertad - Near Church and Police Regional Office Area: [125.5050418, 8.9439688]
+- Near Butuan City Hall Complex: [8.953611, 125.529194]
 
 Formatting rules
 
@@ -563,10 +564,157 @@ Return ONLY valid JSON with this EXACT structure:
       throw new Error('Failed to generate AI response');
     }
   }
+  /**
+   * Generate AI-estimated floor area for a parcel based on business context
+   * @param parcel - The parcel to estimate floor area for
+   * @param businessContext - The user's business interest/search query
+   * @returns Promise<string> - Estimated floor area (e.g., "120 square meters")
+   */
+  async generateFloorArea(parcel: { id: string; address: string; zoneId: string; attributes: Record<string, any> }, businessContext?: string): Promise<string> {
+    try {
+      const prompt = `Given a parcel in Butuan City, Philippines with the following details:
+
+Address: ${parcel.address}
+Zone Type: ${parcel.zoneId}
+Zone Name: ${parcel.attributes.ZONE_NAME || 'N/A'}
+Description: ${parcel.attributes.DESCRIPTION || 'N/A'}
+User Business Interest: ${businessContext || 'General business'}
+
+Task: Estimate the optimal floor area for a ${businessContext ? `"${businessContext}"` : 'general business'} in this location.
+
+BUSINESS-SPECIFIC FLOOR AREA GUIDELINES:
+- Coffee Shop/Café: 5-15 square meters (small takeaway) to 30-80 square meters (sit-in café)
+- Restaurant: 50-150 square meters (small) to 200-500 square meters (full-service)
+- Retail Store/Shop: 20-100 square meters (boutique) to 150-400 square meters (larger retail)
+- Office/Coworking: 50-200 square meters (small office) to 300-800 square meters (larger workspace)
+- Clinic/Medical: 30-110 square meters (consultation rooms + waiting area)
+- Gym/Fitness: 100-400 square meters (equipment space + changing rooms)
+- Beauty Salon/Spa: 20-80 square meters (basic salon) to 100-200 square meters (full spa)
+- Bakery: 15-55 square meters (neighborhood bakery)
+- Internet Café: 30-100 square meters (computer stations + counter)
+- Laundry/Dry Cleaning: 25-75 square meters (machines + customer area)
+- Apartments/Housing: 25-60 square meters (studio) to 80-150 square meters (family unit)
+- Manufacturing/Workshop: 200-2000+ square meters depending on operations
+
+Consider:
+1. The specific business type from the user's query
+2. Zone type regulations and typical sizes for this zone
+3. Local Butuan City business patterns
+4. Practical space requirements for the intended business
+5. Philippine building standards and customer expectations
+
+Provide ONLY a realistic floor area estimate in the format: "XXX square meters" (e.g., "12 square meters" for a small coffee shop).
+Be specific to the business type - a coffee shop should be much smaller than a restaurant.`;
+
+      const response = await this.client.chat.completions.create({
+        model: AZURE_OPENAI_CONFIG.deployment,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert in Philippine real estate, business planning, and space requirements. Provide realistic floor area estimates based on specific business types and local market conditions in Butuan City.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 150,
+        temperature: 0.3 // Lower temperature for more consistent estimates
+      });
+
+      const aiResponse = response.choices[0]?.message?.content?.trim();
+      
+      if (!aiResponse) {
+        throw new Error('No response from AI');
+      }
+
+      // Extract floor area from response
+      const floorAreaMatch = aiResponse.match(/(\d+)\s*square\s*meters/i);
+      if (floorAreaMatch) {
+        return `${floorAreaMatch[1]} square meters`;
+      }
+
+      // Fallback: if AI doesn't return expected format, extract number and format it
+      const numberMatch = aiResponse.match(/(\d+)/);
+      if (numberMatch) {
+        return `${numberMatch[1]} square meters`;
+      }
+
+      // Final fallback based on business context and zone type
+      return this.getFallbackFloorAreaByBusiness(parcel.zoneId, businessContext);
+
+    } catch (error) {
+      console.error('Error generating floor area:', error);
+      // Return fallback floor area based on business context and zone type
+      return this.getFallbackFloorAreaByBusiness(parcel.zoneId, businessContext);
+    }
+  }
+
+  /**
+   * Get fallback floor area based on business context and zone type
+   * @param zoneId - The zone ID
+   * @param businessContext - The business context
+   * @returns string - Fallback floor area estimate
+   */
+  private getFallbackFloorAreaByBusiness(zoneId: string, businessContext?: string): string {
+    const business = businessContext?.toLowerCase() || '';
+    
+    // Business-specific floor areas
+    if (business.includes('coffee') || business.includes('café') || business.includes('cafe')) {
+      return `${Math.floor(Math.random() * 10) + 5} square meters`; // 5-15 sq m
+    }
+    if (business.includes('restaurant') || business.includes('food') || business.includes('dining')) {
+      return `${Math.floor(Math.random() * 100) + 50} square meters`; // 50-150 sq m
+    }
+    if (business.includes('retail') || business.includes('store') || business.includes('shop')) {
+      return `${Math.floor(Math.random() * 80) + 20} square meters`; // 20-100 sq m
+    }
+    if (business.includes('office') || business.includes('coworking') || business.includes('workspace')) {
+      return `${Math.floor(Math.random() * 150) + 50} square meters`; // 50-200 sq m
+    }
+    if (business.includes('clinic') || business.includes('medical') || business.includes('health')) {
+      return `${Math.floor(Math.random() * 80) + 30} square meters`; // 30-110 sq m
+    }
+    if (business.includes('gym') || business.includes('fitness') || business.includes('workout')) {
+      return `${Math.floor(Math.random() * 300) + 100} square meters`; // 100-400 sq m
+    }
+    if (business.includes('salon') || business.includes('beauty') || business.includes('spa')) {
+      return `${Math.floor(Math.random() * 60) + 20} square meters`; // 20-80 sq m
+    }
+    if (business.includes('bakery') || business.includes('pastry')) {
+      return `${Math.floor(Math.random() * 40) + 15} square meters`; // 15-55 sq m
+    }
+    if (business.includes('internet cafe') || business.includes('computer shop')) {
+      return `${Math.floor(Math.random() * 70) + 30} square meters`; // 30-100 sq m
+    }
+    if (business.includes('laundry') || business.includes('dry clean')) {
+      return `${Math.floor(Math.random() * 50) + 25} square meters`; // 25-75 sq m
+    }
+    if (business.includes('apartment') || business.includes('housing') || business.includes('residential')) {
+      return `${Math.floor(Math.random() * 70) + 30} square meters`; // 30-100 sq m
+    }
+    
+    // Zone-based fallback if no business context
+    const zoneType = zoneId?.toLowerCase() || '';
+    if (zoneType.includes('c-1') || zoneType.includes('commercial')) {
+      return `${Math.floor(Math.random() * 200) + 150} square meters`; // 150-350 sq m
+    } else if (zoneType.includes('mu') || zoneType.includes('mixed')) {
+      return `${Math.floor(Math.random() * 150) + 120} square meters`; // 120-270 sq m
+    } else if (zoneType.includes('r-1') || zoneType.includes('residential')) {
+      return `${Math.floor(Math.random() * 100) + 80} square meters`; // 80-180 sq m
+    } else if (zoneType.includes('i-1') || zoneType.includes('industrial')) {
+      return `${Math.floor(Math.random() * 800) + 400} square meters`; // 400-1200 sq m
+    } else if (zoneType.includes('os') || zoneType.includes('open')) {
+      return `${Math.floor(Math.random() * 80) + 100} square meters`; // 100-180 sq m
+    }
+    
+    // Default fallback
+    return `${Math.floor(Math.random() * 120) + 100} square meters`; // 100-220 sq m
+  }
 }
 
 // Export a singleton instance
 export const azureOpenAIService = new AzureOpenAIService();
 
 // Export convenience function for general AI responses
-export const generateAIResponse = (prompt: string) => azureOpenAIService.generateResponse(prompt); 
+export const generateAIResponse = (prompt: string) => azureOpenAIService.generateResponse(prompt);

@@ -1,0 +1,91 @@
+/* Custom marker highlight styles */
+
+/* Base marker styles */
+.marker-base {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #ef4444;
+  border: 2px solid #1f2937;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.marker-base::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: white;
+}
+
+/* Highlighted marker styles with glow effect */
+.marker-highlighted {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #60a5fa;
+  border: 4px solid #3b82f6;
+  position: relative;
+  transition: all 0.3s ease;
+  
+  /* Glow effect using box-shadow */
+  box-shadow: 
+    0 0 20px rgba(59, 130, 246, 0.8),
+    0 0 40px rgba(59, 130, 246, 0.6),
+    0 0 60px rgba(59, 130, 246, 0.4);
+  
+  /* Pulsing animation */
+  animation: pulse-glow 2s infinite;
+}
+
+.marker-highlighted::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: white;
+}
+
+/* Pulsing glow animation */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 
+      0 0 20px rgba(59, 130, 246, 0.8),
+      0 0 40px rgba(59, 130, 246, 0.6),
+      0 0 60px rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 
+      0 0 30px rgba(59, 130, 246, 1),
+      0 0 60px rgba(59, 130, 246, 0.8),
+      0 0 90px rgba(59, 130, 246, 0.6);
+  }
+}
+
+/* Hover effects for both states */
+.marker-base:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+}
+
+.marker-highlighted:hover {
+  transform: scale(1.1);
+}
+
+/* Z-index for highlighted markers to appear on top */
+.marker-highlighted {
+  z-index: 1000 !important;
+}
+
+.marker-base {
+  z-index: 100 !important;
+}
