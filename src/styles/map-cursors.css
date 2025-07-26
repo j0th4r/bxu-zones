@@ -17,4 +17,28 @@
 .gm-fullscreen-control,
 .gm-style-mtc > * {
   cursor: pointer !important;
+}
+
+/* Custom cursor styles for Mapbox */
+.mapboxgl-map {
+  cursor: grab !important;
+}
+
+.mapboxgl-map:active {
+  cursor: grabbing !important;
+}
+
+.mapboxgl-canvas-container {
+  cursor: grab !important;
+}
+
+.mapboxgl-canvas-container:active {
+  cursor: grabbing !important;
+}
+
+/* Mapbox control overrides */
+.mapboxgl-ctrl-group button,
+.mapboxgl-ctrl,
+.mapboxgl-popup {
+  cursor: pointer !important;
 } 

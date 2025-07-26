@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { MapComponent, MapComponentRef } from './components/MapComponent';
+import { MapboxComponent, MapboxComponentRef } from './components/MapboxComponent';
 import { SearchBar } from './components/SearchBar';
 import { Legend } from './components/Legend';
 import { ParcelPopup } from './components/ParcelPopup';
@@ -20,6 +21,7 @@ import { Shield, RefreshCw } from 'lucide-react';
 import { ZoningDistrict, Parcel, SearchResult, SuppliersResponse, BusinessRating, BusinessRatingResponse } from './types/zoning';
 import { ZoningAPI } from './utils/api';
 import { GOOGLE_MAPS_CONFIG } from './config/google-maps';
+import { MAPBOX_CONFIG } from './config/mapbox';
 import { generateBusinessRatings, getIndividualBusinessRating } from './services/business-rating';
 import { azureOpenAIService } from './services/azure-openai';
 import { globalCacheManager } from './services/cache-manager';
@@ -50,8 +52,10 @@ const MapView: React.FC = () => {
   });
   const [activeMeasurementTool, setActiveMeasurementTool] = useState<string | null>(null);
   const [currentMapStyle, setCurrentMapStyle] = useState<string>(GOOGLE_MAPS_CONFIG.mapStyles.default);
+  const [currentMapProvider, setCurrentMapProvider] = useState<'google' | 'mapbox'>('google');
   const [centerCoords, setCenterCoords] = useState<[number, number] | null>(null);
   const mapRef = useRef<MapComponentRef>(null);
+  const mapboxRef = useRef<MapboxComponentRef>(null);
 
   // Supplier state - persists across popup close/open cycles
   const [supplierData, setSupplierData] = useState<SuppliersResponse | null>(null);
@@ -339,13 +343,18 @@ const MapView: React.FC = () => {
     }
   };
   const handleSelectSearchParcel = (parcel: Parcel) => {
+    console.log('🎯 Selecting search parcel:', parcel.address);
     // If parcel geometry coordinates provided, center map
     if (parcel.geometry && parcel.geometry.coordinates) {
       const coords = parcel.geometry.coordinates as [number, number];
+      console.log('📍 Using geometry coordinates:', coords, '[lng, lat]');
       setCenterCoords([...coords] as [number, number]);
     } else if (parcel.attributes?.coordinates && Array.isArray(parcel.attributes.coordinates)) {
       const coords = parcel.attributes.coordinates as [number, number];
+      console.log('📍 Using attributes coordinates:', coords);
       setCenterCoords([...coords] as [number, number]);
+    } else {
+      console.log('❌ No valid coordinates found for parcel');
     }
     // Highlight the selected marker without opening popup
     setHighlightedMarkerParcel(parcel);
@@ -359,11 +368,18 @@ const MapView: React.FC = () => {
   };
 
   const handleMapZoom = (direction: 'in' | 'out') => {
-    if (!mapRef.current) return;
-    if (direction === 'in') {
-      mapRef.current.zoomIn();
-    } else {
-      mapRef.current.zoomOut();
+    if (currentMapProvider === 'google' && mapRef.current) {
+      if (direction === 'in') {
+        mapRef.current.zoomIn();
+      } else {
+        mapRef.current.zoomOut();
+      }
+    } else if (currentMapProvider === 'mapbox' && mapboxRef.current) {
+      if (direction === 'in') {
+        mapboxRef.current.zoomIn();
+      } else {
+        mapboxRef.current.zoomOut();
+      }
     }
   };
 
@@ -396,6 +412,27 @@ const MapView: React.FC = () => {
   const handleMapStyleChange = (style: string) => {
     setCurrentMapStyle(style);
     console.log(`Map style changed to: ${style}`);
+  };
+
+  const handleMapProviderChange = (provider: 'google' | 'mapbox') => {
+    console.log(`Map provider changing from ${currentMapProvider} to ${provider}`);
+    setCurrentMapProvider(provider);
+    
+    // Reset to appropriate default style for each provider
+    if (provider === 'mapbox') {
+      console.log('Switching to Mapbox');
+      setCurrentMapStyle(MAPBOX_CONFIG.defaultStyle);
+      // Disable traffic/transit layers for Mapbox
+      setLayerVisibility(prev => ({
+        ...prev,
+        traffic: false,
+        transit: false
+      }));
+    } else if (provider === 'google') {
+      console.log('Switching to Google Maps');
+      // Don't override the style here, let it be set by the button click
+      // setCurrentMapStyle(GOOGLE_MAPS_CONFIG.mapStyles.default);
+    }
   };
 
   const handleMapClick = () => {
@@ -534,18 +571,35 @@ const MapView: React.FC = () => {
       />
 
       {/* Main Map */}
-      <main className="h-full pt-16">        <MapComponent
-          ref={mapRef}
-          onParcelClick={handleParcelClick}
-          onMapClick={handleMapClick}
-          searchResults={searchResults}
-          className="w-full h-full"
-          layerVisibility={layerVisibility}
-          activeMeasurementTool={activeMeasurementTool}
-          currentMapStyle={currentMapStyle}
-          centerCoordinates={centerCoords}
-          highlightedMarkerParcel={highlightedMarkerParcel}
-        />
+      <main className="h-full pt-16">
+        {currentMapProvider === 'google' ? (
+          <MapComponent
+            key="google-map"
+            ref={mapRef}
+            onParcelClick={handleParcelClick}
+            onMapClick={handleMapClick}
+            searchResults={searchResults}
+            className="w-full h-full"
+            layerVisibility={layerVisibility}
+            activeMeasurementTool={activeMeasurementTool}
+            currentMapStyle={currentMapStyle}
+            centerCoordinates={centerCoords}
+            highlightedMarkerParcel={highlightedMarkerParcel}
+          />
+        ) : (
+          <MapboxComponent
+            key="mapbox-map"
+            ref={mapboxRef}
+            onParcelClick={handleParcelClick}
+            onMapClick={handleMapClick}
+            searchResults={searchResults}
+            className="w-full h-full"
+            activeMeasurementTool={activeMeasurementTool}
+            currentMapStyle={currentMapStyle}
+            centerCoordinates={centerCoords}
+            highlightedMarkerParcel={highlightedMarkerParcel}
+          />
+        )}
       </main>
 
       {/* Map Controls */}
@@ -557,7 +611,9 @@ const MapView: React.FC = () => {
         onMeasurementStart={handleMeasurementStart}
         onAIAnalysis={handleAIAnalysis}
         onMapStyleChange={handleMapStyleChange}
+        onMapProviderChange={handleMapProviderChange}
         currentMapStyle={currentMapStyle}
+        currentMapProvider={currentMapProvider}
         layerVisibility={layerVisibility}
         className="absolute top-1/2 -translate-y-1/2 left-4 z-10"
       />

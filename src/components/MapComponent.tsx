@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useState, useRef } from 'react';
-import { GoogleMap, LoadScript, Polygon, Marker } from '@react-google-maps/api';
+import { GoogleMap, useLoadScript, Polygon, Marker } from '@react-google-maps/api';
 import { Parcel } from '../types/zoning';
 import { ZoningAPI } from '../utils/api';
 import { getZoneColor } from '../config/zoning-colors';
@@ -77,6 +77,12 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
   highlightedMarkerParcel = null,
   onMapClick,
 }, ref) => {
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: GOOGLE_MAPS_CONFIG.apiKey,
+    libraries: [],
+    preventGoogleFontsLoading: true,
+  });
+
   const [isLoading, setIsLoading] = useState(true);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapLayers, setMapLayers] = useState(GOOGLE_MAPS_CONFIG.mapLayers);
@@ -252,10 +258,21 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
   // Handle search results
   useEffect(() => {
     if (searchResults?.results?.parcels) {
+      console.log(`🔍 Search results updated: ${searchResults.results.parcels.length} parcels found`);
       // The map will automatically update markers through the render cycle
       setIsLoading(false);
     }
   }, [searchResults]);
+
+  // Log when map is fully loaded for debugging
+  useEffect(() => {
+    if (mapFullyLoaded) {
+      console.log('📍 Google Maps fully loaded, markers should be visible');
+      if (searchResults?.results?.parcels) {
+        console.log(`📍 ${searchResults.results.parcels.length} search result markers should be rendered`);
+      }
+    }
+  }, [mapFullyLoaded, searchResults]);
 
   // Expose zoom methods to parent
   useImperativeHandle(ref, () => ({
@@ -291,6 +308,16 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
       console.log('Map tiles loaded, map is fully rendered');
       setIsLoading(false);
       setMapFullyLoaded(true);
+      
+      // Force a re-render of markers if we have search results
+      if (searchResults?.results?.parcels) {
+        console.log('🔄 Forcing marker re-render after tiles loaded');
+        // Small delay to ensure map is ready
+        setTimeout(() => {
+          setMapFullyLoaded(false);
+          setMapFullyLoaded(true);
+        }, 100);
+      }
     });
     
     // Also set a backup timeout in case the event doesn't fire
@@ -308,14 +335,17 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
     setIsLoading(false);
   };
 
+  if (loadError) {
+    return <div className={`map-container ${className}`}>Error loading Google Maps</div>;
+  }
+
+  if (!isLoaded) {
+    return <div className={`map-container ${className}`}>Loading Google Maps...</div>;
+  }
+
   return (
     <div className={`map-container ${className}`}>
-      <LoadScript
-        googleMapsApiKey={GOOGLE_MAPS_CONFIG.apiKey}
-        googleMapsClientId={undefined}
-        preventGoogleFontsLoading={true}
-        onError={onLoadError}
-      >        <GoogleMap
+        <GoogleMap
           mapContainerStyle={containerStyle}
           center={BUTUAN_CENTER}
           zoom={GOOGLE_MAPS_CONFIG.defaultZoom}
@@ -370,11 +400,15 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
               });
             }
             return null;
-          })()}          {/* Render search result markers */}
-          {searchResults?.results?.parcels?.map((parcel: Parcel, index: number) => (
-            parcel.geometry && (
+          })()}
+          
+          {/* Render search result markers */}
+          {mapFullyLoaded && searchResults?.results?.parcels?.map((parcel: Parcel, index: number) => {
+            if (!parcel.geometry) return null;
+            
+            return (
               <Marker
-                key={`search-${index}`}
+                key={`search-${parcel.id}-${index}`}
                 position={{
                   lat: parcel.geometry.coordinates[1],
                   lng: parcel.geometry.coordinates[0]
@@ -383,10 +417,9 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
                 icon={createMarkerIcon(isParcelHighlighted(parcel))}
                 zIndex={isParcelHighlighted(parcel) ? 1000 : 100}
               />
-            )
-          ))}
+            );
+          })}
         </GoogleMap>
-      </LoadScript>
 
       {/* Traffic Legend */}
       {layerVisibility?.traffic && (

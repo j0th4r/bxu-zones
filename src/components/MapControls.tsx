@@ -20,6 +20,7 @@ import {
   Mountain,
 } from 'lucide-react';
 import { GOOGLE_MAPS_CONFIG } from '../config/google-maps';
+import { MAPBOX_CONFIG } from '../config/mapbox';
 
 interface MapControlsProps {
   onZoomIn: () => void;
@@ -29,7 +30,9 @@ interface MapControlsProps {
   onMeasurementStart?: (type: 'distance' | 'area') => void;
   onAIAnalysis?: (type: string) => void;
   onMapStyleChange?: (style: string) => void;
+  onMapProviderChange?: (provider: 'google' | 'mapbox') => void;
   currentMapStyle?: string;
+  currentMapProvider?: 'google' | 'mapbox';
   className?: string;
   layerVisibility?: { [key: string]: boolean };
 }
@@ -42,7 +45,9 @@ export const MapControls: React.FC<MapControlsProps> = ({
   onMeasurementStart,
   onAIAnalysis,
   onMapStyleChange,
+  onMapProviderChange,
   currentMapStyle = 'road',
+  currentMapProvider = 'google',
   className = '',
   layerVisibility = {}
 }) => {
@@ -105,6 +110,15 @@ export const MapControls: React.FC<MapControlsProps> = ({
   };
 
   const renderLayersPanel = () => {
+    // Single unified Base Map options
+    const mapOptions = [
+      // Google Maps options
+      { key: 'default', style: GOOGLE_MAPS_CONFIG.mapStyles.default, label: 'Default', provider: 'google' },
+      { key: 'satellite', style: GOOGLE_MAPS_CONFIG.mapStyles.satellite, label: 'Satellite', provider: 'google' },
+      { key: 'terrain', style: GOOGLE_MAPS_CONFIG.mapStyles.terrain, label: 'Terrain', provider: 'google' },
+      // Mapbox option (Standard only)
+      { key: 'mapbox', style: MAPBOX_CONFIG.mapStyles.standard, label: '3D View', provider: 'mapbox' }
+    ];
     
     return (
     <div className="space-y-4 w-full">
@@ -114,27 +128,39 @@ export const MapControls: React.FC<MapControlsProps> = ({
           <Globe size={16} className="text-blue-400 flex-shrink-0" />
           <span className="text-white text-sm font-medium">Base Map</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
-          {Object.entries(GOOGLE_MAPS_CONFIG.mapStyles).map(([key, style]) => (
+        <div className="grid grid-cols-2 gap-2 w-full">
+          {mapOptions.map((option) => (
             <button
-              key={key}
-              onClick={() => onMapStyleChange?.(style)}
-              className={`p-2 rounded-md text-xs transition-colors flex items-center space-x-1 w-full justify-center ${
-                currentMapStyle === style
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
+              key={option.key}
+              onClick={() => {
+                // Only change provider if switching to a different provider
+                if (option.provider !== currentMapProvider && onMapProviderChange) {
+                  onMapProviderChange(option.provider as 'google' | 'mapbox');
+                  // Use setTimeout to ensure provider change happens first
+                  setTimeout(() => {
+                    onMapStyleChange?.(option.style);
+                  }, 10);
+                } else {
+                  // Same provider, just change style immediately
+                  onMapStyleChange?.(option.style);
+                }
+              }}
+              className={`p-2 rounded-md text-xs transition-all duration-200 ease-in-out transform hover:scale-105 flex items-center space-x-1 w-full justify-center ${
+                currentMapStyle === option.style
+                  ? 'bg-blue-600 text-white shadow-md scale-105'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white hover:shadow-md'
               }`}
             >
-              <div className="flex-shrink-0">
-                {key === 'satellite' ? (
+              <div className="flex-shrink-0 transition-transform duration-200">
+                {option.key === 'satellite' ? (
                   <Satellite size={12} />
-                ) : key === 'terrain' ? (
+                ) : option.key === 'terrain' ? (
                   <Mountain size={12} />
                 ) : (
                   <Map size={12} />
                 )}
               </div>
-              <span className="truncate capitalize">{key}</span>
+              <span className="truncate capitalize">{option.label}</span>
             </button>
           ))}
         </div>
@@ -149,25 +175,33 @@ export const MapControls: React.FC<MapControlsProps> = ({
         <div className="space-y-2">
           <button
             onClick={() => onLayerToggle?.('traffic', !layerVisibility['traffic'])}
-            className={`p-2 rounded-md text-xs transition-colors flex items-center space-x-2 w-full ${
-              layerVisibility['traffic']
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
+            disabled={currentMapProvider === 'mapbox'}
+            className={`p-2 rounded-md text-xs transition-all duration-200 ease-in-out transform hover:scale-105 flex items-center space-x-2 w-full ${
+              currentMapProvider === 'mapbox' 
+                ? 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-60'
+                : layerVisibility['traffic']
+                ? 'bg-blue-600 text-white shadow-md scale-105'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white hover:shadow-md'
             }`}
           >
-            <Car size={12} />
+            <Car size={12} className="transition-transform duration-200" />
             <span>Traffic</span>
+            {currentMapProvider === 'mapbox' && <span className="text-xs text-gray-500">(Unavailable)</span>}
           </button>
           <button
             onClick={() => onLayerToggle?.('transit', !layerVisibility['transit'])}
-            className={`p-2 rounded-md text-xs transition-colors flex items-center space-x-2 w-full ${
-              layerVisibility['transit']
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
+            disabled={currentMapProvider === 'mapbox'}
+            className={`p-2 rounded-md text-xs transition-all duration-200 ease-in-out transform hover:scale-105 flex items-center space-x-2 w-full ${
+              currentMapProvider === 'mapbox' 
+                ? 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-60'
+                : layerVisibility['transit']
+                ? 'bg-blue-600 text-white shadow-md scale-105'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white hover:shadow-md'
             }`}
           >
-            <Train size={12} />
+            <Train size={12} className="transition-transform duration-200" />
             <span>Transit</span>
+            {currentMapProvider === 'mapbox' && <span className="text-xs text-gray-500">(Unavailable)</span>}
           </button>
           {/* Terrain and Street View buttons removed */}
         </div>
@@ -180,19 +214,19 @@ export const MapControls: React.FC<MapControlsProps> = ({
     <div className="space-y-4 w-full">
       <button
         onClick={() => onMeasurementStart?.('distance')}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors flex items-center justify-center space-x-2 min-h-[40px]"
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-2 min-h-[40px]"
       >
-        <Ruler size={16} className="flex-shrink-0" />
+        <Ruler size={16} className="flex-shrink-0 transition-transform duration-200" />
         <span className="truncate">Measure Distance</span>
       </button>
       <button
         onClick={() => onMeasurementStart?.('area')}
-        className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md transition-colors flex items-center justify-center space-x-2 min-h-[40px]"
+        className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-2 min-h-[40px]"
       >
-        <BarChart3 size={16} className="flex-shrink-0" />
+        <BarChart3 size={16} className="flex-shrink-0 transition-transform duration-200" />
         <span className="truncate">Measure Area</span>
       </button>
-      <div className="mt-4 p-3 bg-gray-700 rounded-md">
+      <div className="mt-4 p-3 bg-gray-700 rounded-md transition-all duration-200 ease-in-out">
         <h4 className="text-white text-sm font-medium mb-2">Instructions:</h4>
         <p className="text-gray-300 text-xs leading-relaxed">
           Click to start measuring. Click again to add points. Double-click to
@@ -203,91 +237,97 @@ export const MapControls: React.FC<MapControlsProps> = ({
   );
 
   const renderAIPanel = () => (
-    <div className="space-y-4 w-full">
-      <button
-        onClick={handleAIAnalyze}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-md transition-colors flex items-center justify-center space-x-2"
-      >
+    <div className="h-full flex flex-col">
+      {/* Group 1: Fixed Analyze Button (Non-scrollable) */}
+      <div className="flex-shrink-0 pb-4 border-b border-gray-600">
+        <button
+          onClick={handleAIAnalyze}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-2"
+        >
+          <Sparkles size={16} className="flex-shrink-0 transition-transform duration-200" />
+          <span>Analyze Current View</span>
+        </button>
+      </div>
+
+      {/* Fixed AI Analysis Header */}
+      <div className="flex-shrink-0 flex items-center space-x-2 text-blue-400 pt-4 pb-3">
         <Sparkles size={16} className="flex-shrink-0" />
-        <span>Analyze Current View</span>
-      </button>
+        <span className="text-sm font-medium">AI Analysis</span>
+      </div>
 
-      {/* AI Analysis Results */}
-      <div className="space-y-4 mt-6 max-h-80 overflow-y-auto border-t border-gray-600">
-        <div className="flex items-center space-x-2 text-blue-400 sticky top-0 bg-gray-800 pb-2 z-10">
-          <Sparkles size={16} className="flex-shrink-0" />
-          <span className="text-sm font-medium pt-4">AI Analysis</span>
-        </div>
-
-        {/* Zoning Districts */}
-        <div className="pr-3 pb-2">
-          <div className="flex items-center space-x-2 mb-2">
-            <MapPin size={14} className="text-gray-400 flex-shrink-0" />
-            <span className="text-white text-sm font-medium">
-              Zoning Districts
-            </span>
-          </div>
-          <div className="space-y-2">
-            {aiAnalysisData.zoningDistricts.map((zone, index) => (
-              <div key={index} className="bg-gray-700 p-2 rounded text-xs">
-                <div className="flex justify-between items-center mb-1 gap-2">
-                  <span className="text-blue-400 font-medium flex-shrink-0">
-                    {zone.code}
-                  </span>
-                  <span className="text-gray-300 truncate">{zone.name}</span>
+      {/* Group 2: Scrollable Content Starting with Zoning Districts */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="space-y-4">
+          {/* Zoning Districts */}
+          <div className="pr-2 pb-2">
+            <div className="flex items-center space-x-2 mb-2">
+              <MapPin size={14} className="text-gray-400 flex-shrink-0" />
+              <span className="text-white text-sm font-medium">
+                Zoning Districts
+              </span>
+            </div>
+            <div className="space-y-2">
+              {aiAnalysisData.zoningDistricts.map((zone, index) => (
+                <div key={index} className="bg-gray-700 p-2 rounded text-xs">
+                  <div className="flex justify-between items-center mb-1 gap-2">
+                    <span className="text-blue-400 font-medium flex-shrink-0">
+                      {zone.code}
+                    </span>
+                    <span className="text-gray-300 truncate">{zone.name}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-400 gap-2">
+                    <span className="flex-shrink-0">FAR: {zone.far}</span>
+                    <span className="truncate">Height: {zone.height}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-gray-400 gap-2">
-                  <span className="flex-shrink-0">FAR: {zone.far}</span>
-                  <span className="truncate">Height: {zone.height}</span>
+              ))}
+            </div>
+          </div>
+
+          {/* Land Use Patterns */}
+          <div className="pr-2 pb-2">
+            <div className="flex items-center space-x-2 mb-2">
+              <Building size={14} className="text-gray-400 flex-shrink-0" />
+              <span className="text-white text-sm font-medium">
+                Land Use Patterns
+              </span>
+            </div>
+            <p className="text-gray-300 text-xs leading-relaxed whitespace-normal">
+              {aiAnalysisData.landUsePatterns}
+            </p>
+          </div>
+
+          {/* Development Potential */}
+          <div className="pr-2 pb-2">
+            <div className="flex items-center space-x-2 mb-2">
+              <TreePine size={14} className="text-gray-400 flex-shrink-0" />
+              <span className="text-white text-sm font-medium">
+                Development Potential
+              </span>
+            </div>
+            <p className="text-gray-300 text-xs leading-relaxed whitespace-normal">
+              {aiAnalysisData.developmentPotential}
+            </p>
+          </div>
+
+          {/* Relevant Sections */}
+          <div className="pr-2 pb-4">
+            <div className="flex items-center space-x-2 mb-2">
+              <BarChart3 size={14} className="text-gray-400 flex-shrink-0" />
+              <span className="text-white text-sm font-medium">
+                Relevant Sections
+              </span>
+            </div>
+            <div className="space-y-1">
+              {aiAnalysisData.relevantSections.map((section, index) => (
+                <div
+                  key={index}
+                  className="text-blue-400 text-xs hover:text-blue-300 cursor-pointer break-words"
+                >
+                  {section}
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Land Use Patterns */}
-        <div className="pr-3 pb-2">
-          <div className="flex items-center space-x-2 mb-2">
-            <Building size={14} className="text-gray-400 flex-shrink-0" />
-            <span className="text-white text-sm font-medium">
-              Land Use Patterns
-            </span>
-          </div>
-          <p className="text-gray-300 text-xs leading-relaxed whitespace-normal">
-            {aiAnalysisData.landUsePatterns}
-          </p>
-        </div>
-
-        {/* Development Potential */}
-        <div className="pr-3 pb-2">
-          <div className="flex items-center space-x-2 mb-2">
-            <TreePine size={14} className="text-gray-400 flex-shrink-0" />
-            <span className="text-white text-sm font-medium">
-              Development Potential
-            </span>
-          </div>
-          <p className="text-gray-300 text-xs leading-relaxed whitespace-normal">
-            {aiAnalysisData.developmentPotential}
-          </p>
-        </div>
-
-        {/* Relevant Sections */}
-        <div className="pr-3 pb-4">
-          <div className="flex items-center space-x-2 mb-2">
-            <BarChart3 size={14} className="text-gray-400 flex-shrink-0" />
-            <span className="text-white text-sm font-medium">
-              Relevant Sections
-            </span>
-          </div>
-          <div className="space-y-1">
-            {aiAnalysisData.relevantSections.map((section, index) => (
-              <div
-                key={index}
-                className="text-blue-400 text-xs hover:text-blue-300 cursor-pointer break-words"
-              >
-                {section}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -328,28 +368,30 @@ export const MapControls: React.FC<MapControlsProps> = ({
       {/* Map Tools Panel */}
       <div className="absolute top-1/4 right-4 z-10">
         <div
-          className={`bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${
+          className={`bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-all duration-500 ease-in-out ${
             isMapToolsVisible
-              ? 'w-auto min-w-80 max-w-96 sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl h-auto max-h-[70vh]'
-              : 'w-12 h-auto'
+              ? 'w-80 h-auto max-h-[70vh]'
+              : 'w-12 h-12'
           }`}
         >
           <div
-            className={`flex justify-between items-center border-b border-gray-700 cursor-pointer hover:bg-gray-750 transition-colors ${
-              isMapToolsVisible ? 'p-4' : 'p-[0.8rem] justify-center'
+            className={`flex justify-between items-center cursor-pointer hover:bg-gray-750 transition-all duration-300 ease-in-out ${
+              isMapToolsVisible 
+                ? 'p-4 border-b border-gray-700' 
+                : 'p-3 justify-center h-12'
             }`}
             onClick={toggleMapTools}
           >
             <h2
-              className={`font-bold text-white transition-all duration-300 ${
+              className={`font-bold text-white transition-all duration-300 ease-in-out ${
                 isMapToolsVisible
-                  ? 'opacity-100'
-                  : 'opacity-0 w-0 overflow-hidden'
+                  ? 'opacity-100 max-w-full'
+                  : 'opacity-0 max-w-0 overflow-hidden absolute'
               }`}
             >
               Map Tools
             </h2>
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 transition-transform duration-300 ease-in-out hover:scale-110">
               {isMapToolsVisible ? (
                 <PanelRightClose className="text-gray-400" size={20} />
               ) : (
@@ -359,21 +401,21 @@ export const MapControls: React.FC<MapControlsProps> = ({
           </div>
 
           <div
-            className={`transition-all duration-300 overflow-hidden ${
+            className={`transition-all duration-500 ease-in-out overflow-hidden ${
               isMapToolsVisible
-                ? 'max-h-[calc(85vh-4rem)] opacity-100'
+                ? 'max-h-[calc(70vh-4rem)] opacity-100'
                 : 'max-h-0 opacity-0'
             }`}
           >
-            <div className="p-4 max-h-[calc(85vh-4rem)] overflow-y-auto overflow-x-hidden">
+            <div className="p-4 w-full overflow-x-hidden">
               {/* Tab Navigation */}
               <div className="flex justify-around items-center bg-gray-700 rounded-md p-1 mb-4 flex-wrap gap-1">
                 <button
                   onClick={() => setActiveTab('layers')}
-                  className={`py-2 px-2 sm:px-3 text-xs rounded-md flex items-center transition-colors flex-1 min-w-0 justify-center ${
+                  className={`py-2 px-2 sm:px-3 text-xs rounded-md flex items-center transition-all duration-200 ease-in-out flex-1 min-w-0 justify-center ${
                     activeTab === 'layers'
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-400 hover:text-white'
+                      ? 'bg-gray-900 text-white shadow-md'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-600'
                   }`}
                 >
                   <Layers className="mr-1 flex-shrink-0" size={12} />
@@ -381,10 +423,10 @@ export const MapControls: React.FC<MapControlsProps> = ({
                 </button>
                 <button
                   onClick={() => setActiveTab('measure')}
-                  className={`py-2 px-2 sm:px-3 text-xs rounded-md flex items-center transition-colors flex-1 min-w-0 justify-center ${
+                  className={`py-2 px-2 sm:px-3 text-xs rounded-md flex items-center transition-all duration-200 ease-in-out flex-1 min-w-0 justify-center ${
                     activeTab === 'measure'
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-400 hover:text-white'
+                      ? 'bg-gray-900 text-white shadow-md'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-600'
                   }`}
                 >
                   <Ruler className="mr-1 flex-shrink-0" size={12} />
@@ -392,10 +434,10 @@ export const MapControls: React.FC<MapControlsProps> = ({
                 </button>
                 <button
                   onClick={() => setActiveTab('ai')}
-                  className={`py-2 px-2 sm:px-3 text-xs rounded-md flex items-center transition-colors flex-1 min-w-0 justify-center ${
+                  className={`py-2 px-2 sm:px-3 text-xs rounded-md flex items-center transition-all duration-200 ease-in-out flex-1 min-w-0 justify-center ${
                     activeTab === 'ai'
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-400 hover:text-white'
+                      ? 'bg-gray-900 text-white shadow-md'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-600'
                   }`}
                 >
                   <Sparkles className="mr-1 flex-shrink-0" size={12} />
@@ -403,11 +445,13 @@ export const MapControls: React.FC<MapControlsProps> = ({
                 </button>
               </div>
 
-              {/* Tab Content */}
-              <div className="min-h-fit">
-                {activeTab === 'layers' && renderLayersPanel()}
-                {activeTab === 'measure' && renderMeasurePanel()}
-                {activeTab === 'ai' && renderAIPanel()}
+              {/* Tab Content with Fixed Height */}
+              <div className="h-80 overflow-y-auto overflow-x-hidden">
+                <div className="min-h-full w-full">
+                  {activeTab === 'layers' && renderLayersPanel()}
+                  {activeTab === 'measure' && renderMeasurePanel()}
+                  {activeTab === 'ai' && renderAIPanel()}
+                </div>
               </div>
             </div>
           </div>
