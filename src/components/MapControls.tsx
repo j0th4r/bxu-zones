@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { GOOGLE_MAPS_CONFIG } from '../config/google-maps';
 import { MAPBOX_CONFIG } from '../config/mapbox';
+import { GoogleMapsMeasureTool } from './GoogleMapsMeasureTool';
 
 interface MapControlsProps {
   onZoomIn: () => void;
@@ -35,6 +36,7 @@ interface MapControlsProps {
   currentMapProvider?: 'google' | 'mapbox';
   className?: string;
   layerVisibility?: { [key: string]: boolean };
+  mapInstance?: google.maps.Map | mapboxgl.Map; // Add map instance prop for professional measurement
 }
 
 export const MapControls: React.FC<MapControlsProps> = ({
@@ -49,12 +51,14 @@ export const MapControls: React.FC<MapControlsProps> = ({
   currentMapStyle = 'road',
   currentMapProvider = 'google',
   className = '',
-  layerVisibility = {}
+  layerVisibility = {},
+  mapInstance
 }) => {
   const [isMapToolsVisible, setIsMapToolsVisible] = useState(true);
   const [activeTab, setActiveTab] = useState<'layers' | 'measure' | 'ai'>(
     'layers'
   );
+  const [activeMeasurementType, setActiveMeasurementType] = useState<'distance' | 'area' | null>(null);
 
   const [aiAnalysisData] = useState({
     zoningDistricts: [
@@ -213,26 +217,65 @@ export const MapControls: React.FC<MapControlsProps> = ({
   const renderMeasurePanel = () => (
     <div className="space-y-4 w-full">
       <button
-        onClick={() => onMeasurementStart?.('distance')}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-2 min-h-[40px]"
+        onClick={() => {
+          setActiveMeasurementType('distance');
+          onMeasurementStart?.('distance');
+        }}
+        className={`w-full py-2 px-4 rounded-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-2 min-h-[40px] ${
+          activeMeasurementType === 'distance'
+            ? 'bg-blue-700 text-white'
+            : 'bg-blue-600 hover:bg-blue-700 text-white'
+        }`}
       >
         <Ruler size={16} className="flex-shrink-0 transition-transform duration-200" />
         <span className="truncate">Measure Distance</span>
       </button>
       <button
-        onClick={() => onMeasurementStart?.('area')}
-        className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-2 min-h-[40px]"
+        onClick={() => {
+          setActiveMeasurementType('area');
+          onMeasurementStart?.('area');
+        }}
+        className={`w-full py-2 px-4 rounded-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-2 min-h-[40px] ${
+          activeMeasurementType === 'area'
+            ? 'bg-green-700 text-white'
+            : 'bg-green-600 hover:bg-green-700 text-white'
+        }`}
       >
         <BarChart3 size={16} className="flex-shrink-0 transition-transform duration-200" />
         <span className="truncate">Measure Area</span>
       </button>
-      <div className="mt-4 p-3 bg-gray-700 rounded-md transition-all duration-200 ease-in-out">
-        <h4 className="text-white text-sm font-medium mb-2">Instructions:</h4>
-        <p className="text-gray-300 text-xs leading-relaxed">
-          Click to start measuring. Click again to add points. Double-click to
-          finish.
-        </p>
-      </div>
+      
+      {activeMeasurementType && (
+        <div className="mt-4 p-3 bg-gray-700 rounded-md">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-white text-sm font-medium">Professional Tool Active</h4>
+            <button
+              onClick={() => {
+                setActiveMeasurementType(null);
+              }}
+              className="text-gray-400 hover:text-white text-xs"
+            >
+              Stop
+            </button>
+          </div>
+          <p className="text-gray-300 text-xs leading-relaxed">
+            • Shows segment distances like a ruler<br/>
+            • Click to add points<br/>
+            • Double-click to finish<br/>
+            • Right-click for options
+          </p>
+        </div>
+      )}
+      
+      {!activeMeasurementType && (
+        <div className="mt-4 p-3 bg-gray-700 rounded-md transition-all duration-200 ease-in-out">
+          <h4 className="text-white text-sm font-medium mb-2">Instructions:</h4>
+          <p className="text-gray-300 text-xs leading-relaxed">
+            Click to start measuring. This uses a professional tool that shows
+            segment distances like a ruler.
+          </p>
+        </div>
+      )}
     </div>
   );
 
@@ -457,6 +500,16 @@ export const MapControls: React.FC<MapControlsProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* Professional Google Maps Measurement Tool */}
+      {currentMapProvider === 'google' && activeMeasurementType && mapInstance && (
+        <GoogleMapsMeasureTool
+          map={mapInstance as google.maps.Map}
+          isActive={true}
+          measurementType={activeMeasurementType}
+          onStop={() => setActiveMeasurementType(null)}
+        />
+      )}
     </>
   );
 };

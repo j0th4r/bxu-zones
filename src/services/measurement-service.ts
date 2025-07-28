@@ -98,8 +98,66 @@ export const calculatePathDistance = (coordinates: [number, number][]): number =
   return totalDistance;
 };
 
+/**
+ * Calculate segment distances for ruler-like display
+ * @param coordinates - Array of [lat, lng] coordinates
+ * @returns Array of objects with segment info
+ */
+export const calculateSegmentDistances = (coordinates: [number, number][]): Array<{
+  segmentIndex: number;
+  segmentDistance: number;
+  cumulativeDistance: number;
+  startPoint: [number, number];
+  endPoint: [number, number];
+  midPoint: [number, number];
+}> => {
+  if (coordinates.length < 2) return [];
+
+  const segments = [];
+  let cumulativeDistance = 0;
+  
+  for (let i = 0; i < coordinates.length - 1; i++) {
+    const [lat1, lng1] = coordinates[i];
+    const [lat2, lng2] = coordinates[i + 1];
+    
+    const segmentDistance = calculateHaversineDistance(lat1, lng1, lat2, lng2);
+    cumulativeDistance += segmentDistance;
+    
+    // Calculate midpoint for label placement
+    const midLat = (lat1 + lat2) / 2;
+    const midLng = (lng1 + lng2) / 2;
+    
+    segments.push({
+      segmentIndex: i,
+      segmentDistance,
+      cumulativeDistance,
+      startPoint: [lat1, lng1] as [number, number],
+      endPoint: [lat2, lng2] as [number, number],
+      midPoint: [midLat, midLng] as [number, number]
+    });
+  }
+  
+  return segments;
+};
+
+/**
+ * Format distance for ruler display (always show meters with 2 decimal places)
+ * @param distanceInMeters - Distance in meters
+ * @returns Formatted distance string for ruler
+ */
+export const formatRulerDistance = (distanceInMeters: number): string => {
+  if (distanceInMeters >= 1000) {
+    const distanceInKm = distanceInMeters / 1000;
+    return `${distanceInKm.toFixed(2)} km`;
+  } else {
+    return `${distanceInMeters.toFixed(2)} m`;
+  }
+};
+
 export default {
   calculateHaversineDistance,
   calculatePathDistance,
-  formatDistance
+  calculateSegmentDistances,
+  formatDistance,
+  formatRulerDistance
 };

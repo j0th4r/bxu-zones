@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { calculateHaversineDistance, formatDistance } from '../services/measurement-service';
+import { calculateHaversineDistance, formatDistance, calculateSegmentDistances, formatRulerDistance } from '../services/measurement-service';
 
 // Define map point type
 type MapPoint = {
@@ -48,6 +48,8 @@ export const useMapboxMeasurement = (mapInstance: any): UseMapboxMeasurementRetu
   const LINE_LAYER_ID = 'measure-line-layer';
   const POINT_SOURCE_ID = 'measure-point-source';
   const POINT_LAYER_ID = 'measure-point-layer';
+  const LABEL_SOURCE_ID = 'measure-label-source';
+  const LABEL_LAYER_ID = 'measure-label-layer';
 
   /**
    * Format the current total distance for display
@@ -92,12 +94,20 @@ export const useMapboxMeasurement = (mapInstance: any): UseMapboxMeasurementRetu
       mapInstance.removeLayer(POINT_LAYER_ID);
     }
     
+    if (mapInstance.getLayer(LABEL_LAYER_ID)) {
+      mapInstance.removeLayer(LABEL_LAYER_ID);
+    }
+    
     if (mapInstance.getSource(LINE_SOURCE_ID)) {
       mapInstance.removeSource(LINE_SOURCE_ID);
     }
     
     if (mapInstance.getSource(POINT_SOURCE_ID)) {
       mapInstance.removeSource(POINT_SOURCE_ID);
+    }
+    
+    if (mapInstance.getSource(LABEL_SOURCE_ID)) {
+      mapInstance.removeSource(LABEL_SOURCE_ID);
     }
     
     // Add a source for our line
@@ -115,6 +125,15 @@ export const useMapboxMeasurement = (mapInstance: any): UseMapboxMeasurementRetu
     
     // Add a source for our points
     mapInstance.addSource(POINT_SOURCE_ID, {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: []
+      }
+    });
+    
+    // Add a source for distance labels
+    mapInstance.addSource(LABEL_SOURCE_ID, {
       type: 'geojson',
       data: {
         type: 'FeatureCollection',
@@ -148,6 +167,25 @@ export const useMapboxMeasurement = (mapInstance: any): UseMapboxMeasurementRetu
         'circle-color': '#3b82f6',
         'circle-stroke-width': 2,
         'circle-stroke-color': '#ffffff'
+      }
+    });
+    
+    // Add a layer to display distance labels
+    mapInstance.addLayer({
+      id: LABEL_LAYER_ID,
+      type: 'symbol',
+      source: LABEL_SOURCE_ID,
+      layout: {
+        'text-field': ['get', 'distance'],
+        'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+        'text-size': 12,
+        'text-offset': [0, -1.5],
+        'text-anchor': 'bottom'
+      },
+      paint: {
+        'text-color': '#1f2937',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1
       }
     });
   }, [mapInstance]);
@@ -221,6 +259,49 @@ export const useMapboxMeasurement = (mapInstance: any): UseMapboxMeasurementRetu
             coordinates: coord
           }
         }))
+      });
+    }
+    
+    // Update distance labels
+    updateDistanceLabels(currentPoints);
+  }, [mapInstance]);
+
+  /**
+   * Update distance labels for Mapbox
+   */
+  const updateDistanceLabels = useCallback((currentPoints: MapPoint[]) => {
+    if (!mapInstance || currentPoints.length < 2) return;
+    
+    // Convert points to coordinate format for segment calculation [lat, lng]
+    const coordinates: [number, number][] = currentPoints.map(point => [
+      point.coordinates[1], // latitude
+      point.coordinates[0]  // longitude
+    ]);
+    
+    // Calculate segment distances
+    const segments = calculateSegmentDistances(coordinates);
+    
+    // Create label features for each cumulative distance
+    const labelFeatures = segments.map((segment, index) => {
+      const endPoint = currentPoints[index + 1]; // Segment ends at next point
+      return {
+        type: 'Feature' as const,
+        properties: {
+          distance: formatRulerDistance(segment.cumulativeDistance)
+        },
+        geometry: {
+          type: 'Point' as const,
+          coordinates: endPoint.coordinates
+        }
+      };
+    });
+    
+    // Update the label source
+    const labelSource = mapInstance.getSource(LABEL_SOURCE_ID);
+    if (labelSource && 'setData' in labelSource) {
+      labelSource.setData({
+        type: 'FeatureCollection',
+        features: labelFeatures
       });
     }
   }, [mapInstance]);

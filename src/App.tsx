@@ -627,6 +627,7 @@ const MapView: React.FC = () => {
         currentMapStyle={currentMapStyle}
         currentMapProvider={currentMapProvider}
         layerVisibility={layerVisibility}
+        mapInstance={currentMapProvider === 'google' ? mapRef.current?.getMap() : mapboxRef.current?.getMap()}
         className="absolute top-1/2 -translate-y-1/2 left-4 z-10"
       />
 
