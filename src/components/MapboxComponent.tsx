@@ -36,6 +36,7 @@ export interface MapboxComponentRef {
   zoomOut: () => void;
   panTo: (coordinates: [number, number]) => void;
   fitBounds: (bounds: [[number, number], [number, number]]) => void;
+  getMap: () => mapboxgl.Map | null;
 }
 
 export const MapboxComponent = forwardRef<MapboxComponentRef, MapboxComponentProps>(({
@@ -81,7 +82,8 @@ export const MapboxComponent = forwardRef<MapboxComponentRef, MapboxComponentPro
           duration: 1000
         });
       }
-    }
+    },
+    getMap: () => mapRef.current?.getMap() || null
   }));
 
   // Update map style when currentMapStyle prop changes

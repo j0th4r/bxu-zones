@@ -9,6 +9,7 @@ import { SearchResults } from './components/SearchResults';
 import { BusinessRatingModal } from './components/BusinessRatingModal';
 
 import { MapControls } from './components/MapControls';
+import { MeasurementControls } from './components/MeasurementControls';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { AISettings } from './components/AISettings';
@@ -25,6 +26,7 @@ import { MAPBOX_CONFIG } from './config/mapbox';
 import { generateBusinessRatings, getIndividualBusinessRating } from './services/business-rating';
 import { azureOpenAIService } from './services/azure-openai';
 import { globalCacheManager } from './services/cache-manager';
+import './styles/measurement-styles.css';
 
 
 const MapView: React.FC = () => {
@@ -601,6 +603,16 @@ const MapView: React.FC = () => {
           />
         )}
       </main>
+
+      {/* Measurement Controls - conditionally rendered when measuring */}
+      {activeMeasurementTool === 'distance' && (
+        <MeasurementControls
+          mapInstance={currentMapProvider === 'google' ? mapRef.current?.getMap() : mapboxRef.current?.getMap()}
+          mapProvider={currentMapProvider}
+          isActive={activeMeasurementTool === 'distance'}
+          onStopMeasuring={() => setActiveMeasurementTool(null)}
+        />
+      )}
 
       {/* Map Controls */}
       <MapControls

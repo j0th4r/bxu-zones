@@ -61,6 +61,8 @@ interface MapComponentProps {
   className?: string;
   layerVisibility?: Record<string, boolean>;
   activeMeasurementTool?: string | null;
+  isMeasurementActive?: boolean;
+  onClearMeasurements?: () => void;
   currentMapStyle?: string;
   centerCoordinates?: [number, number] | null;
   highlightedMarkerParcel?: Parcel | null;
@@ -72,6 +74,9 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
   searchResults,
   className = '',
   layerVisibility = {},
+  activeMeasurementTool = null,
+  isMeasurementActive = false,
+  onClearMeasurements,
   currentMapStyle = GOOGLE_MAPS_CONFIG.mapStyles.default,
   centerCoordinates = null,
   highlightedMarkerParcel = null,
@@ -79,7 +84,7 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
 }, ref) => {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: GOOGLE_MAPS_CONFIG.apiKey,
-    libraries: [],
+    libraries: ['drawing'],
     preventGoogleFontsLoading: true,
   });
 
@@ -91,6 +96,13 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
   // Refs for layers
   const trafficLayerRef = useRef<google.maps.TrafficLayer | null>(null);
   const transitLayerRef = useRef<google.maps.TransitLayer | null>(null);
+
+  // Measurement tool state
+  const [measurementListeners, setMeasurementListeners] = useState<google.maps.MapsEventListener[]>([]);
+  const [measurementMarkers, setMeasurementMarkers] = useState<google.maps.Marker[]>([]);
+  const [measurementPolylines, setMeasurementPolylines] = useState<google.maps.Polyline[]>([]);
+  const [currentPath, setCurrentPath] = useState<google.maps.LatLng[]>([]);
+  const [totalDistance, setTotalDistance] = useState<number>(0);
 
   // Complete zoning areas dataset (GeoJSON Features)
   type ZoningFeature = {
@@ -187,6 +199,204 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
     return highlightedMarkerParcel.id === parcel.id;
   };
 
+  // Distance calculation using Haversine formula
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371000; // Earth's radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in meters
+  };
+
+  // Format distance for display
+  const formatDistance = (meters: number): string => {
+    if (meters < 1000) {
+      return `${meters.toFixed(1)} m`;
+    } else {
+      return `${(meters / 1000).toFixed(2)} km`;
+    }
+  };
+
+  // Clear all measurement elements
+  const clearMeasurements = () => {
+    // Clear markers
+    measurementMarkers.forEach(marker => marker.setMap(null));
+    setMeasurementMarkers([]);
+    
+    // Clear polylines
+    measurementPolylines.forEach(polyline => polyline.setMap(null));
+    setMeasurementPolylines([]);
+    
+    // Clear listeners
+    measurementListeners.forEach(listener => google.maps.event.removeListener(listener));
+    setMeasurementListeners([]);
+    
+    // Reset state
+    setCurrentPath([]);
+    setTotalDistance(0);
+    
+    // Restore default cursor
+    if (map) {
+      map.setOptions({ draggableCursor: 'inherit' });
+    }
+  };
+
+  // Create measurement marker with distance label
+  const createMeasurementMarker = (position: google.maps.LatLng, segmentDistance?: number, totalDistance?: number, isStart: boolean = false): google.maps.Marker => {
+    // Create the marker
+    const marker = new google.maps.Marker({
+      position,
+      map,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        fillColor: isStart ? '#1a73e8' : '#ffffff',
+        fillOpacity: 1,
+        strokeColor: '#1a73e8',
+        strokeWeight: 3,
+        scale: 6,
+      },
+      zIndex: 1000,
+    });
+
+    // Create distance label if provided
+    if (segmentDistance !== undefined) {
+      const labelText = segmentDistance < 1000 
+        ? `${segmentDistance.toFixed(2)} m`
+        : `${(segmentDistance / 1000).toFixed(2)} km`;
+
+      const labelMarker = new google.maps.Marker({
+        position,
+        map,
+        icon: {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="60" height="25" viewBox="0 0 60 25">
+              <rect x="2" y="2" width="56" height="21" fill="white" stroke="#1a73e8" stroke-width="1" rx="3"/>
+              <text x="30" y="16" text-anchor="middle" font-family="Roboto,Arial,sans-serif" font-size="11" font-weight="500" fill="#1a73e8">${labelText}</text>
+            </svg>
+          `),
+          scaledSize: new google.maps.Size(60, 25),
+          anchor: new google.maps.Point(30, 30),
+        },
+        zIndex: 999,
+      });
+      
+      setMeasurementMarkers(prev => [...prev, labelMarker]);
+    }
+
+    return marker;
+  };
+
+  // Create polyline between two points
+  const createMeasurementPolyline = (start: google.maps.LatLng, end: google.maps.LatLng): google.maps.Polyline => {
+    return new google.maps.Polyline({
+      path: [start, end],
+      geodesic: true,
+      strokeColor: '#1a73e8',
+      strokeOpacity: 1.0,
+      strokeWeight: 3,
+      map,
+      zIndex: 100,
+    });
+  };
+
+  // Start measuring distance
+  const startMeasurement = () => {
+    if (!map) return;
+    
+    clearMeasurements();
+    
+    // Change cursor to crosshair
+    map.setOptions({ draggableCursor: 'crosshair' });
+    
+    const clickListener = map.addListener('click', (event: google.maps.MapMouseEvent) => {
+      if (!event.latLng) return;
+      
+      const newPath = [...currentPath, event.latLng];
+      setCurrentPath(newPath);
+      
+      if (newPath.length === 1) {
+        // First point - create start marker
+        const startMarker = createMeasurementMarker(event.latLng, undefined, undefined, true);
+        setMeasurementMarkers(prev => [...prev, startMarker]);
+      } else {
+        // Subsequent points
+        const prevPoint = newPath[newPath.length - 2];
+        const segmentDistance = calculateDistance(
+          prevPoint.lat(),
+          prevPoint.lng(),
+          event.latLng.lat(),
+          event.latLng.lng()
+        );
+        
+        const newTotal = totalDistance + segmentDistance;
+        setTotalDistance(newTotal);
+        
+        // Create measurement point marker with segment distance
+        const marker = createMeasurementMarker(event.latLng, segmentDistance, newTotal);
+        setMeasurementMarkers(prev => [...prev, marker]);
+        
+        // Create polyline between previous and current point
+        const polyline = createMeasurementPolyline(prevPoint, event.latLng);
+        setMeasurementPolylines(prev => [...prev, polyline]);
+      }
+    });
+
+    const dblClickListener = map.addListener('dblclick', (event: google.maps.MapMouseEvent) => {
+      // Finish measurement - restore cursor
+      map.setOptions({ draggableCursor: 'inherit' });
+      
+      // Remove listeners
+      google.maps.event.removeListener(clickListener);
+      google.maps.event.removeListener(dblClickListener);
+      setMeasurementListeners(prev => prev.filter(l => l !== clickListener && l !== dblClickListener));
+      
+      // If we have at least 2 points, close the path if it's a polygon-like measurement
+      if (currentPath.length >= 3 && event.latLng) {
+        const firstPoint = currentPath[0];
+        const lastPoint = event.latLng;
+        
+        // Check if the last click is close to the first point (within 10 pixels)
+        const pixel1 = map.getProjection()?.fromLatLngToPoint(firstPoint);
+        const pixel2 = map.getProjection()?.fromLatLngToPoint(lastPoint);
+        
+        if (pixel1 && pixel2) {
+          const zoom = map.getZoom() || 1;
+          const scale = Math.pow(2, zoom);
+          const distance = Math.sqrt(
+            Math.pow((pixel1.x - pixel2.x) * scale, 2) + 
+            Math.pow((pixel1.y - pixel2.y) * scale, 2)
+          );
+          
+          if (distance < 10) {
+            // Close the polygon
+            const closingDistance = calculateDistance(
+              lastPoint.lat(),
+              lastPoint.lng(),
+              firstPoint.lat(),
+              firstPoint.lng()
+            );
+            
+            const closingPolyline = createMeasurementPolyline(lastPoint, firstPoint);
+            setMeasurementPolylines(prev => [...prev, closingPolyline]);
+            
+            // Add closing distance marker at midpoint
+            const midLat = (lastPoint.lat() + firstPoint.lat()) / 2;
+            const midLng = (lastPoint.lng() + firstPoint.lng()) / 2;
+            const midPoint = new google.maps.LatLng(midLat, midLng);
+            
+            const closingMarker = createMeasurementMarker(midPoint, closingDistance);
+            setMeasurementMarkers(prev => [...prev, closingMarker]);
+          }
+        }
+      }
+    });
+
+    setMeasurementListeners([clickListener, dblClickListener]);
+  };
+
   useEffect(() => {
     loadZoningData();
     console.log('Map component mounted');
@@ -274,6 +484,34 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
     }
   }, [mapFullyLoaded, searchResults]);
 
+  // Handle measurement tool activation
+  useEffect(() => {
+    if (!map) return;
+    
+    if (activeMeasurementTool === 'distance' && isMeasurementActive) {
+      console.log('📏 Activating distance measurement tool');
+      startMeasurement();
+    } else {
+      // Clear any active measurement listeners when tool is deactivated
+      measurementListeners.forEach(listener => google.maps.event.removeListener(listener));
+      setMeasurementListeners([]);
+      setCurrentPath([]);
+      setTotalDistance(0);
+      
+      // Restore default cursor
+      if (map) {
+        map.setOptions({ draggableCursor: 'inherit' });
+      }
+    }
+  }, [activeMeasurementTool, isMeasurementActive, map]);
+
+  // Cleanup measurements on unmount
+  useEffect(() => {
+    return () => {
+      clearMeasurements();
+    };
+  }, []);
+
   // Expose zoom methods to parent
   useImperativeHandle(ref, () => ({
     zoomIn: () => {
@@ -286,7 +524,9 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
         map.setZoom((map.getZoom() || 14) - 1);
       }
     },
-    getMap: () => map
+    clearMeasurements: () => {
+      clearMeasurements();
+    }
   }));
 
   const loadZoningData = async () => {
@@ -329,11 +569,6 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
         setMapFullyLoaded(true);
       }
     }, 3000);
-  };
-
-  const onLoadError = (error: Error) => {
-    console.error('Error loading Google Maps:', error);
-    setIsLoading(false);
   };
 
   if (loadError) {
@@ -456,5 +691,5 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
 export type MapComponentRef = {
   zoomIn: () => void;
   zoomOut: () => void;
-  getMap: () => google.maps.Map | null;
+  clearMeasurements: () => void;
 };
