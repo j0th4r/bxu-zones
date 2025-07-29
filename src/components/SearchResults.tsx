@@ -53,14 +53,14 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
           <div className="flex items-center space-x-2">
             <button
               onClick={onToggleMinimize}
-              className="text-gray-400 hover:text-white transition-colors flex-shrink-0"
+              className="text-gray-400 hover:text-white transition-colors flex-shrink-0 mt-2"
               title={isMinimized ? 'Maximize' : 'Minimize'}
             >
               {isMinimized ? <Maximize2 size={16} /> : <Minus size={16} />}
             </button>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors flex-shrink-0"
+              className="text-gray-400 hover:text-white transition-colors flex-shrink-0 mt-2"
               title="Close"
             >
               ×
