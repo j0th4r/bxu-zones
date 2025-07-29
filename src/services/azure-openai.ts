@@ -577,7 +577,7 @@ Return ONLY valid JSON with this EXACT structure:
 Address: ${parcel.address}
 Zone Type: ${parcel.zoneId}
 Zone Name: ${parcel.attributes.ZONE_NAME || 'N/A'}
-Description: ${parcel.attributes.DESCRIPTION || 'N/A'}
+
 User Business Interest: ${businessContext || 'General business'}
 
 Task: Estimate the optimal floor area for a ${businessContext ? `"${businessContext}"` : 'general business'} in this location.

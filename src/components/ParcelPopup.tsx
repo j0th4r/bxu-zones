@@ -33,6 +33,7 @@ export const ParcelPopup: React.FC<ParcelPopupProps> = ({
   loadingFloorArea = false
 }) => {
   const [isStreetViewModalOpen, setIsStreetViewModalOpen] = useState(false);
+  const [isCalendlyModalOpen, setIsCalendlyModalOpen] = useState(false);
 
   if (!parcel) return null;
 
@@ -95,14 +96,21 @@ export const ParcelPopup: React.FC<ParcelPopupProps> = ({
                   )}
                 </div>
               )}
+
             </div>
           </div>
 
+          {/* Book an Appointment Button */}
+          <div className="pt-4">
+            <button
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition-colors shadow"
+              onClick={() => setIsCalendlyModalOpen(true)}
+            >
+              Book an Appointment
+            </button>
+          </div>
+
           <div>
-            <label className="text-gray-400 block mb-2">Description</label>
-            <p className="text-white text-sm">
-              {parcel.attributes.DESCRIPTION || 'No description available'}
-            </p>
           </div>          {parcel.attributes.regulations && (
             <div>
               <label className="text-gray-400 block mb-2">Regulations</label>
@@ -266,6 +274,32 @@ export const ParcelPopup: React.FC<ParcelPopupProps> = ({
         lat={parcel.geometry?.coordinates[1]}
         lng={parcel.geometry?.coordinates[0]}
       />
+
+      {/* Calendly Modal */}
+      {isCalendlyModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-800">Book an Appointment</h2>
+              <button
+                onClick={() => setIsCalendlyModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="h-[600px]">
+              <iframe
+                src="https://calendly.com/castrodesjohnpaul/60min"
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                title="Schedule Appointment"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
