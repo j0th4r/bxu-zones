@@ -187,18 +187,11 @@ export const MapboxComponent = forwardRef<MapboxComponentRef, MapboxComponentPro
         'match',
         ['get', 'zoneType'],
         'R-1', getZoneColor('R-1'),
-        'R-2', getZoneColor('R-2'),
-        'R-3', getZoneColor('R-3'),
         'C-1', getZoneColor('C-1'),
-        'C-2', getZoneColor('C-2'),
-        'C-3', getZoneColor('C-3'),
-        'MU-1', getZoneColor('MU-1'),
-        'MU-2', getZoneColor('MU-2'),
-        'IN-1', getZoneColor('IN-1'),
-        'IN-2', getZoneColor('IN-2'),
-        'OS-1', getZoneColor('OS-1'),
-        'PUD', getZoneColor('PUD'),
-        '#cccccc' // default color
+        'MU', getZoneColor('MU'),
+        'OS', getZoneColor('OS'),
+        'I-1', getZoneColor('I-1'),
+        '#cccccc' // default color for any unmapped zones
       ],
       'fill-opacity': 0.6
     }
