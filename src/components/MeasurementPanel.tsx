@@ -29,7 +29,8 @@ const MeasurementPanel: React.FC<MeasurementPanelProps> = ({
         <button
           onClick={onClear}
           className="text-gray-400 hover:text-white transition-colors"
-          title="Clear Measurement"
+          title="Stop Measuring"
+          data-testid="stop-measuring-button"
         >
           <X size={16} />
         </button>
@@ -50,7 +51,7 @@ const MeasurementPanel: React.FC<MeasurementPanelProps> = ({
       </div>
       
       <div className="mt-2 text-xs text-gray-400">
-        Click to add points. Double-click to finish.
+        Click to add points. Click near the green starting point to close polygon and calculate area.
       </div>
     </div>
   );

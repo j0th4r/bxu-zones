@@ -403,8 +403,14 @@ const MapView: React.FC = () => {
   };
 
   const handleMeasurementStart = (type: 'distance' | 'area') => {
-    setActiveMeasurementTool(type);
-    console.log(`Starting ${type} measurement`);
+    // Toggle the measurement tool - if already active, turn it off
+    if (activeMeasurementTool === type) {
+      setActiveMeasurementTool(null);
+      console.log(`Turning off ${type} measurement`);
+    } else {
+      setActiveMeasurementTool(type);
+      console.log(`Starting ${type} measurement`);
+    }
   };
 
   const handleAIAnalysis = (type: string) => {
@@ -604,15 +610,13 @@ const MapView: React.FC = () => {
         )}
       </main>
 
-      {/* Measurement Controls - conditionally rendered when measuring */}
-      {activeMeasurementTool === 'distance' && (
-        <MeasurementControls
-          mapInstance={currentMapProvider === 'google' ? mapRef.current?.getMap() : mapboxRef.current?.getMap()}
-          mapProvider={currentMapProvider}
-          isActive={activeMeasurementTool === 'distance'}
-          onStopMeasuring={() => setActiveMeasurementTool(null)}
-        />
-      )}
+      {/* Measurement Controls - always rendered to preserve measurements */}
+      <MeasurementControls
+        mapInstance={currentMapProvider === 'google' ? mapRef.current?.getMap() : mapboxRef.current?.getMap()}
+        mapProvider={currentMapProvider}
+        isActive={activeMeasurementTool === 'distance'}
+        onStopMeasuring={() => setActiveMeasurementTool(null)}
+      />
 
       {/* Map Controls */}
       <MapControls
@@ -627,7 +631,8 @@ const MapView: React.FC = () => {
         currentMapStyle={currentMapStyle}
         currentMapProvider={currentMapProvider}
         layerVisibility={layerVisibility}
-        mapInstance={currentMapProvider === 'google' ? mapRef.current?.getMap() : mapboxRef.current?.getMap()}
+        mapInstance={currentMapProvider === 'google' ? mapRef.current?.getMap() || undefined : mapboxRef.current?.getMap() || undefined}
+        activeMeasurementTool={activeMeasurementTool}
         className="absolute top-1/2 -translate-y-1/2 left-4 z-10"
       />
 

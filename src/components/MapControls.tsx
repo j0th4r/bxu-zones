@@ -36,7 +36,8 @@ interface MapControlsProps {
   currentMapProvider?: 'google' | 'mapbox';
   className?: string;
   layerVisibility?: { [key: string]: boolean };
-  mapInstance?: google.maps.Map | mapboxgl.Map; // Add map instance prop for professional measurement
+  mapInstance?: google.maps.Map | mapboxgl.Map;
+  activeMeasurementTool?: string | null; // Add this prop to track measurement state from App.tsx
 }
 
 export const MapControls: React.FC<MapControlsProps> = ({
@@ -52,13 +53,14 @@ export const MapControls: React.FC<MapControlsProps> = ({
   currentMapProvider = 'google',
   className = '',
   layerVisibility = {},
-  mapInstance
+  mapInstance,
+  activeMeasurementTool // Add this prop
 }) => {
   const [isMapToolsVisible, setIsMapToolsVisible] = useState(true);
   const [activeTab, setActiveTab] = useState<'layers' | 'measure' | 'ai'>(
     'layers'
   );
-  const [activeMeasurementType, setActiveMeasurementType] = useState<'distance' | 'area' | null>(null);
+  // Remove local activeMeasurementType state - use the prop from App.tsx instead
 
   const [aiAnalysisData] = useState({
     zoningDistricts: [
@@ -218,61 +220,46 @@ export const MapControls: React.FC<MapControlsProps> = ({
     <div className="space-y-4 w-full">
       <button
         onClick={() => {
-          setActiveMeasurementType('distance');
-          onMeasurementStart?.('distance');
+          if (activeMeasurementTool === 'distance') {
+            // Stop measuring - ensure cleanup happens first before updating state
+            if (mapInstance) {
+              // If we had a reference to the clearMeasurement function, we'd call it directly
+              // This will be handled by MeasurementControls useEffect when activeMeasurementTool changes
+            }
+            // Then toggle it off in App.tsx
+            onMeasurementStart?.('distance'); 
+          } else {
+            // Start measuring
+            onMeasurementStart?.('distance');
+          }
         }}
         className={`w-full py-2 px-4 rounded-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-2 min-h-[40px] ${
-          activeMeasurementType === 'distance'
-            ? 'bg-blue-700 text-white'
+          activeMeasurementTool === 'distance'
+            ? 'bg-red-600 hover:bg-red-700 text-white'
             : 'bg-blue-600 hover:bg-blue-700 text-white'
         }`}
+        data-testid="measurement-toggle-button"
       >
-        <Ruler size={16} className="flex-shrink-0 transition-transform duration-200" />
-        <span className="truncate">Measure Distance</span>
-      </button>
-      <button
-        onClick={() => {
-          setActiveMeasurementType('area');
-          onMeasurementStart?.('area');
-        }}
-        className={`w-full py-2 px-4 rounded-md transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-lg flex items-center justify-center space-x-2 min-h-[40px] ${
-          activeMeasurementType === 'area'
-            ? 'bg-green-700 text-white'
-            : 'bg-green-600 hover:bg-green-700 text-white'
-        }`}
-      >
-        <BarChart3 size={16} className="flex-shrink-0 transition-transform duration-200" />
-        <span className="truncate">Measure Area</span>
+        {activeMeasurementTool === 'distance' ? (
+          <>
+            <span className="text-xs">⏹</span>
+            <span className="truncate">Stop Measuring</span>
+          </>
+        ) : (
+          <>
+            <Ruler size={16} className="flex-shrink-0 transition-transform duration-200" />
+            <span className="truncate">Measure</span>
+          </>
+        )}
       </button>
       
-      {activeMeasurementType && (
-        <div className="mt-4 p-3 bg-gray-700 rounded-md">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-white text-sm font-medium">Professional Tool Active</h4>
-            <button
-              onClick={() => {
-                setActiveMeasurementType(null);
-              }}
-              className="text-gray-400 hover:text-white text-xs"
-            >
-              Stop
-            </button>
-          </div>
-          <p className="text-gray-300 text-xs leading-relaxed">
-            • Shows segment distances like a ruler<br/>
-            • Click to add points<br/>
-            • Double-click to finish<br/>
-            • Right-click for options
-          </p>
-        </div>
-      )}
-      
-      {!activeMeasurementType && (
+      {activeMeasurementTool !== 'distance' && (
         <div className="mt-4 p-3 bg-gray-700 rounded-md transition-all duration-200 ease-in-out">
           <h4 className="text-white text-sm font-medium mb-2">Instructions:</h4>
           <p className="text-gray-300 text-xs leading-relaxed">
-            Click to start measuring. This uses a professional tool that shows
-            segment distances like a ruler.
+            • Click to add measurement points<br/>
+            • Shows distance between points<br/>
+            • Click near first point to close polygon and calculate area
           </p>
         </div>
       )}
@@ -501,7 +488,8 @@ export const MapControls: React.FC<MapControlsProps> = ({
         </div>
       </div>
       
-      {/* Professional Google Maps Measurement Tool */}
+      {/* Professional Google Maps Measurement Tool - Disabled to prevent duplicate UI */}
+      {/* 
       {currentMapProvider === 'google' && activeMeasurementType && mapInstance && (
         <GoogleMapsMeasureTool
           map={mapInstance as google.maps.Map}
@@ -510,6 +498,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
           onStop={() => setActiveMeasurementType(null)}
         />
       )}
+      */}
     </>
   );
 };

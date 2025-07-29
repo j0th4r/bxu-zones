@@ -21,7 +21,7 @@ export const MeasurementControls: React.FC<MeasurementControlsProps> = ({
   isActive,
   onStopMeasuring,
 }) => {
-  // Initialize the measurement tool
+  // Only initialize the measurement tool if we have a map instance
   const {
     isMeasuring,
     formattedDistance,
@@ -34,22 +34,23 @@ export const MeasurementControls: React.FC<MeasurementControlsProps> = ({
     mapInstance
   });
 
-  // Start measuring when component mounts
+  // Start measuring when component becomes active and we have a map
   useEffect(() => {
-    if (isActive && !isMeasuring) {
+    if (isActive && !isMeasuring && mapInstance) {
       toggleMeasurement();
     }
-  }, [isActive, isMeasuring, toggleMeasurement]);
+  }, [isActive, isMeasuring, toggleMeasurement, mapInstance]);
 
-  // Clean up when component unmounts or becomes inactive
+  // Clean up when component unmounts
   useEffect(() => {
     return () => {
+      // Clear measurements when component unmounts
       if (isMeasuring) {
         clearMeasurement();
       }
     };
-  }, []);
-
+  }, []); // Empty dependency array - only runs on mount/unmount
+  
   // Clean up when isActive becomes false
   useEffect(() => {
     if (!isActive && isMeasuring) {
@@ -59,14 +60,15 @@ export const MeasurementControls: React.FC<MeasurementControlsProps> = ({
 
   // Handle clearing measurements
   const handleClearMeasure = () => {
-    clearMeasurement();
-    onStopMeasuring();
+    clearMeasurement(); // First, clean up all map elements
+    onStopMeasuring(); // Then notify parent to update UI state
   };
 
   return (
     <>
-      {/* The measurement panel only appears when measuring is active */}
-      {isActive && isMeasuring && (
+      {/* The measurement panel shows when there are measurements to display 
+          or when actively measuring */}
+      {(isMeasuring || (formattedDistance && formattedDistance !== '0 m' && formattedDistance !== '0 ft')) && (
         <MeasurementPanel
           distance={formattedDistance}
           onClear={handleClearMeasure}

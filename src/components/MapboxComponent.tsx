@@ -146,9 +146,7 @@ export const MapboxComponent = forwardRef<MapboxComponentRef, MapboxComponentPro
           id: clickedFeature.properties.id,
           address: clickedFeature.properties.address || '',
           zoneId: clickedFeature.properties.zoneType,
-          geometry: {
-            coordinates: [lngLat.lng, lngLat.lat]
-          },
+          geometry: null, // Set to null for zoning areas to show Zoning Details instead of Parcel Details
           attributes: {
             OBJECTID: clickedFeature.properties.objectId || 0,
             ZONE_NAME: clickedFeature.properties.zoneName,

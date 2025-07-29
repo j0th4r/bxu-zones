@@ -130,44 +130,13 @@ export const Dashboard: React.FC = () => {
   ];
 
   const queryCategories = [
-    { name: 'Zoning Regulations', value: 35, count: 203 },
-    { name: 'Building Codes', value: 25, count: 145 },
-    { name: 'Height Limits', value: 20, count: 116 },
-    { name: 'Use Permissions', value: 20, count: 117 },
+    { name: 'Food Pastries', value: 35, count: 203 },
+    { name: 'Internet Cafes', value: 25, count: 145 },
+    { name: 'Flower Shops', value: 20, count: 116 },
+    { name: 'Restaurants', value: 20, count: 117 },
   ];
 
   const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444'];
-
-  const performanceMetrics = [
-    { 
-      label: 'Avg Response Time', 
-      value: '1.2s', 
-      change: '-15%', 
-      trend: 'down',
-      description: 'Average AI response time'
-    },
-    { 
-      label: 'System Uptime', 
-      value: '99.8%', 
-      change: '+0.2%', 
-      trend: 'up',
-      description: 'System availability'
-    },
-    { 
-      label: 'Query Accuracy', 
-      value: '94.5%', 
-      change: '+2.1%', 
-      trend: 'up',
-      description: 'AI answer accuracy rate'
-    },
-    { 
-      label: 'Daily Avg Queries', 
-      value: '156', 
-      change: '+23%', 
-      trend: 'up',
-      description: 'Average queries per day'
-    },
-  ];
 
   // Reports Data
   const [reports, setReports] = useState([
@@ -373,27 +342,6 @@ export const Dashboard: React.FC = () => {
         {/* Analytics Tab */}
         {activeTab === 'analytics' && (
           <div className="space-y-6">
-            {/* Performance Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {performanceMetrics.map((metric, index) => (
-                <div key={index} className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-medium text-gray-400">{metric.label}</h3>
-                    <TrendingUp className={`w-4 h-4 ${
-                      metric.trend === 'up' ? 'text-green-400' : 'text-red-400'
-                    }`} />
-                  </div>
-                  <div className="text-2xl font-bold text-white mb-1">{metric.value}</div>
-                  <div className={`text-sm ${
-                    metric.trend === 'up' ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                    {metric.change} from last week
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">{metric.description}</div>
-                </div>
-              ))}
-            </div>
-
             {/* Charts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* AI Query Trends */}

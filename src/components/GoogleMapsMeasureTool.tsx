@@ -5,14 +5,8 @@ import { calculateHaversineDistance, formatDistance, calculatePathDistance } fro
 interface GoogleMapsMeasureToolProps {
   map: google.maps.Map;
   isActive: boolean;
-  measurementType: 'distance' | 'area';
+  measurementType: 'distance' | 'area'; // Keep for compatibility, but will always use distance
   onStop: () => void;
-}
-
-interface AreaPoint {
-  id: string;
-  position: google.maps.LatLng;
-  marker?: google.maps.Marker;
 }
 
 export const GoogleMapsMeasureTool: React.FC<GoogleMapsMeasureToolProps> = ({
@@ -21,63 +15,19 @@ export const GoogleMapsMeasureTool: React.FC<GoogleMapsMeasureToolProps> = ({
   measurementType,
   onStop
 }) => {
-  // Use the distance measurement hook
+  // Use the distance measurement hook - this handles all measurement logic
   const distanceMeasurement = useGoogleMeasurement(map);
   
-  // Area measurement state
-  const [areaPoints, setAreaPoints] = useState<AreaPoint[]>([]);
-  const [isAreaMeasuring, setIsAreaMeasuring] = useState(false);
-  const [totalArea, setTotalArea] = useState(0);
-  const [areaPolygon, setAreaPolygon] = useState<google.maps.Polygon | null>(null);
-  const areaMarkersRef = useRef<google.maps.Marker[]>([]);
-  const areaClickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
-  
-  // Enhanced state for closed polygon detection
-  const [isPolygonClosed, setIsPolygonClosed] = useState(false);
-  const [polygonPerimeter, setPolygonPerimeter] = useState(0);
-  const [closedPolygonArea, setClosedPolygonArea] = useState(0);
-
-  // Distance threshold for detecting clicks near the first point (in meters)
-  const CLOSURE_THRESHOLD = 50;
-
-  // Check if a click is near the first point
-  const isNearFirstPoint = useCallback((clickPosition: google.maps.LatLng, firstPoint: google.maps.LatLng): boolean => {
-    const distance = calculateHaversineDistance(
-      clickPosition.lat(),
-      clickPosition.lng(),
-      firstPoint.lat(),
-      firstPoint.lng()
-    );
-    return distance <= CLOSURE_THRESHOLD;
-  }, []);
-
-  // Calculate polygon perimeter (including closing segment)
-  const calculatePolygonPerimeter = useCallback((points: google.maps.LatLng[], closed: boolean = true): number => {
-    if (points.length < 2) return 0;
-    
-    const coordinates: [number, number][] = points.map(point => [
-      point.lat(),
-      point.lng()
-    ]);
-    
-    // Calculate path distance
-    let totalDistance = calculatePathDistance(coordinates);
-    
-    // Add closing segment if polygon should be closed
-    if (closed && points.length >= 3) {
-      const lastPoint = points[points.length - 1];
-      const firstPoint = points[0];
-      const closingDistance = calculateHaversineDistance(
-        lastPoint.lat(),
-        lastPoint.lng(),
-        firstPoint.lat(),
-        firstPoint.lng()
-      );
-      totalDistance += closingDistance;
-    }
-    
-    return totalDistance;
-  }, []);
+  // State for displaying polygon closure results
+  const [polygonResults, setPolygonResults] = useState<{
+    isPolygonClosed: boolean;
+    polygonPerimeter: number;
+    closedPolygonArea: number;
+  }>({
+    isPolygonClosed: false,
+    polygonPerimeter: 0,
+    closedPolygonArea: 0
+  });
 
   // Calculate polygon area using the shoelace formula
   const calculatePolygonArea = useCallback((points: google.maps.LatLng[]): number => {
@@ -100,243 +50,78 @@ export const GoogleMapsMeasureTool: React.FC<GoogleMapsMeasureToolProps> = ({
     return Math.abs(area * earthRadius * earthRadius / 2);
   }, []);
 
-  // Enhanced area click handler with polygon closure detection
-  const handleAreaClick = useCallback((e: google.maps.MapMouseEvent) => {
-    if (!isAreaMeasuring || !e.latLng) return;
-    
-    setAreaPoints(prevPoints => {
-      // Check if clicking near the first point to close polygon
-      if (prevPoints.length >= 3 && isNearFirstPoint(e.latLng!, prevPoints[0].position)) {
-        // Close the polygon
-        const positions = prevPoints.map(p => p.position);
-        const area = calculatePolygonArea(positions);
-        const perimeter = calculatePolygonPerimeter(positions, true); // Explicitly close the polygon
-        
-        setClosedPolygonArea(area);
-        setPolygonPerimeter(perimeter);
-        setIsPolygonClosed(true);
-        
-        // Update polygon to be closed
-        if (areaPolygon) {
-          areaPolygon.setPath(positions);
-          areaPolygon.setOptions({
-            strokeColor: '#059669', // Darker green when closed
-            fillOpacity: 0.3
-          });
-        }
-        
-        // Remove click listener since polygon is complete
-        if (areaClickListenerRef.current) {
-          google.maps.event.removeListener(areaClickListenerRef.current);
-          areaClickListenerRef.current = null;
-        }
-        
-        // Reset cursor
-        map.setOptions({ draggableCursor: 'inherit' });
-        
-        return prevPoints; // Don't add the closing point as a separate point
-      }
-      
-      // Regular point addition
-      const pointId = `area-point-${Date.now()}`;
-      const marker = new google.maps.Marker({
-        position: e.latLng!,
-        map: map,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 6,
-          fillColor: '#10b981',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2,
-        },
-      });
-      
-      areaMarkersRef.current.push(marker);
-      
-      const newPoint = {
-        id: pointId,
-        position: e.latLng!,
-        marker
-      };
-      
-      const newPoints = [...prevPoints, newPoint];
-      
-      // Update polygon if we have at least 3 points
-      if (newPoints.length >= 3) {
-        const positions = newPoints.map(p => p.position);
-        const area = calculatePolygonArea(positions);
-        setTotalArea(area);
-        
-        if (areaPolygon) {
-          areaPolygon.setPath(positions);
-        } else {
-          const polygon = new google.maps.Polygon({
-            paths: positions,
-            strokeColor: '#10b981',
-            strokeOpacity: 0.8,
-            strokeWeight: 2,
-            fillColor: '#10b981',
-            fillOpacity: 0.2,
-            map: map
-          });
-          setAreaPolygon(polygon);
-        }
-      }
-      
-      return newPoints;
-    });
-  }, [isAreaMeasuring, map, calculatePolygonArea, calculatePolygonPerimeter, areaPolygon, isNearFirstPoint]);
+  const calculatePolygonPerimeter = useCallback((points: google.maps.LatLng[]): number => {
+    if (points.length < 2) return 0;
 
-  // Enhanced area click handler for distance measurement with closure detection
-  const handleDistanceClickWithClosure = useCallback((e: google.maps.MapMouseEvent) => {
-    if (!e.latLng) return;
-    
-    // Check if we should close the polygon
-    if (distanceMeasurement.points.length >= 3 && isNearFirstPoint(e.latLng, distanceMeasurement.points[0].position)) {
-      // Close the polygon and calculate both measurements
+    const coordinates: [number, number][] = points.map(pt => [pt.lat(), pt.lng()]);
+
+    // Path distance without closing segment
+    let distanceMeters = calculatePathDistance(coordinates);
+
+    // Add closing segment
+    const last = points[points.length - 1];
+    const first = points[0];
+    distanceMeters += calculateHaversineDistance(last.lat(), last.lng(), first.lat(), first.lng());
+
+    return distanceMeters;
+  }, []);
+
+  // Listen for polygon closure from the hook
+  useEffect(() => {
+    // Check if polygon was closed (indicated by the hook having points but not measuring)
+    if (!distanceMeasurement.isMeasuring && distanceMeasurement.points.length >= 3) {
       const positions = distanceMeasurement.points.map(p => p.position);
       const area = calculatePolygonArea(positions);
-      const perimeter = calculatePolygonPerimeter(positions, true); // Explicitly close the polygon
+      const perimeter = calculatePolygonPerimeter(positions);
       
-      console.log('Closing polygon with perimeter:', perimeter, 'area:', area); // Debug log
-      
-      setClosedPolygonArea(area);
-      setPolygonPerimeter(perimeter);
-      setIsPolygonClosed(true);
-      
-      // Create a closed polygon overlay
-      const polygon = new google.maps.Polygon({
-        paths: positions,
-        strokeColor: '#3b82f6',
-        strokeOpacity: 0.8,
-        strokeWeight: 3,
-        fillColor: '#3b82f6',
-        fillOpacity: 0.2,
-        map: map
+      setPolygonResults({
+        isPolygonClosed: true,
+        polygonPerimeter: perimeter,
+        closedPolygonArea: area
       });
-      setAreaPolygon(polygon);
-      
-      // Stop measurement mode AFTER we've captured all the data
-      setTimeout(() => {
-        distanceMeasurement.clearMeasurement();
-      }, 100);
-      
-      // Prevent the event from continuing to the normal measurement handler
-      e.stop?.();
-      return;
+    } else if (distanceMeasurement.isMeasuring || distanceMeasurement.points.length === 0) {
+      // Reset polygon results when starting new measurement or clearing
+      setPolygonResults({
+        isPolygonClosed: false,
+        polygonPerimeter: 0,
+        closedPolygonArea: 0
+      });
     }
-    
-    // If not closing, let the normal measurement proceed
-    // The useGoogleMeasurement hook will handle this automatically
-  }, [distanceMeasurement, isNearFirstPoint, calculatePolygonArea, calculatePolygonPerimeter, map]);
+  }, [distanceMeasurement.isMeasuring, distanceMeasurement.points.length, calculatePolygonArea, calculatePolygonPerimeter]);
 
-  // Start area measurement
-  const startAreaMeasurement = useCallback(() => {
-    setIsAreaMeasuring(true);
-    setAreaPoints([]);
-    setTotalArea(0);
-    setIsPolygonClosed(false);
-    setPolygonPerimeter(0);
-    setClosedPolygonArea(0);
-    areaMarkersRef.current = [];
-    
-    map.setOptions({ draggableCursor: 'crosshair' });
-    
-    // Add click listener
-    areaClickListenerRef.current = map.addListener('click', handleAreaClick);
-  }, [map, handleAreaClick]);
-
-  // Clear area measurement
-  const clearAreaMeasurement = useCallback(() => {
-    // Remove click listener
-    if (areaClickListenerRef.current) {
-      google.maps.event.removeListener(areaClickListenerRef.current);
-      areaClickListenerRef.current = null;
-    }
-    
-    // Remove polygon
-    if (areaPolygon) {
-      areaPolygon.setMap(null);
-      setAreaPolygon(null);
-    }
-    
-    // Remove markers
-    areaMarkersRef.current.forEach(marker => {
-      marker.setMap(null);
-    });
-    areaMarkersRef.current = [];
-    
-    // Reset state
-    setIsAreaMeasuring(false);
-    setAreaPoints([]);
-    setTotalArea(0);
-    setIsPolygonClosed(false);
-    setPolygonPerimeter(0);
-    setClosedPolygonArea(0);
-    
-    // Reset cursor
-    map.setOptions({ draggableCursor: 'inherit' });
-  }, [map, areaPolygon]);
-
-  // Clear all measurements including closed polygon
+  // Clear all measurements
   const clearAllMeasurements = useCallback(() => {
-    clearAreaMeasurement();
     distanceMeasurement.clearMeasurement();
-    setIsPolygonClosed(false);
-    setPolygonPerimeter(0);
-    setClosedPolygonArea(0);
-  }, [clearAreaMeasurement, distanceMeasurement]);
+    setPolygonResults({
+      isPolygonClosed: false,
+      polygonPerimeter: 0,
+      closedPolygonArea: 0
+    });
+  }, [distanceMeasurement]);
 
-  // Effect to handle measurement type changes
+  // Effect to handle measurement activation
   useEffect(() => {
     if (!isActive) {
-      // Clean up both measurement types when not active
+      // Clean up measurement when not active
       if (distanceMeasurement.isMeasuring) {
         distanceMeasurement.clearMeasurement();
       }
-      clearAreaMeasurement();
-      setIsPolygonClosed(false);
+      clearAllMeasurements();
       return;
     }
 
-    if (measurementType === 'distance') {
-      // Clear area measurement and start distance measurement
-      clearAreaMeasurement();
-      if (!distanceMeasurement.isMeasuring && !isPolygonClosed) {
-        distanceMeasurement.toggleMeasurement();
-      }
-    } else if (measurementType === 'area') {
-      // Clear distance measurement and start area measurement
-      if (distanceMeasurement.isMeasuring) {
-        distanceMeasurement.clearMeasurement();
-      }
-      if (!isAreaMeasuring && !isPolygonClosed) {
-        startAreaMeasurement();
-      }
+    // Start a fresh measurement only if the tool is inactive AND no points exist yet
+    if (!distanceMeasurement.isMeasuring && !polygonResults.isPolygonClosed && distanceMeasurement.points.length === 0) {
+      distanceMeasurement.toggleMeasurement();
     }
-  }, [isActive, measurementType, distanceMeasurement, isAreaMeasuring, clearAreaMeasurement, startAreaMeasurement, isPolygonClosed]);
-
-  // Add enhanced click handling for distance measurement
-  useEffect(() => {
-    if (measurementType === 'distance' && distanceMeasurement.isMeasuring && !isPolygonClosed) {
-      const clickListener = map.addListener('click', handleDistanceClickWithClosure);
-      
-      return () => {
-        google.maps.event.removeListener(clickListener);
-      };
-    }
-  }, [measurementType, distanceMeasurement.isMeasuring, isPolygonClosed, map, handleDistanceClickWithClosure]);
+  }, [isActive, distanceMeasurement, polygonResults.isPolygonClosed, clearAllMeasurements]);
 
   // Clean up on unmount
   useEffect(() => {
     return () => {
-      clearAreaMeasurement();
-      if (distanceMeasurement.isMeasuring) {
-        distanceMeasurement.clearMeasurement();
-      }
+      clearAllMeasurements();
     };
-  }, [clearAreaMeasurement, distanceMeasurement]);
+  }, [clearAllMeasurements]);
 
   // Format area for display with both units
   const formatArea = useCallback((areaInSquareMeters: number): string => {
@@ -372,8 +157,7 @@ export const GoogleMapsMeasureTool: React.FC<GoogleMapsMeasureToolProps> = ({
         <>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold">
-              {isPolygonClosed ? 'Closed Polygon Measurement' : 
-               measurementType === 'distance' ? 'Distance Measurement' : 'Area Measurement'}
+              {polygonResults.isPolygonClosed ? 'Polygon Measurement Complete' : 'Measurement Tool'}
             </h3>
             <button
               onClick={onStop}
@@ -383,16 +167,16 @@ export const GoogleMapsMeasureTool: React.FC<GoogleMapsMeasureToolProps> = ({
             </button>
           </div>
           
-          {isPolygonClosed && (
+          {polygonResults.isPolygonClosed && (
             <div className="space-y-3">
               <div className="text-sm text-gray-300">
                 <div className="mb-2">
                   <span className="text-gray-400">Total area:</span>{' '}
-                  <span className="text-white font-semibold">{formatArea(closedPolygonArea)}</span>
+                  <span className="text-white font-semibold">{formatArea(polygonResults.closedPolygonArea)}</span>
                 </div>
                 <div>
-                  <span className="text-gray-400">Total distance:</span>{' '}
-                  <span className="text-white font-semibold">{formatDistanceDisplay(polygonPerimeter)}</span>
+                  <span className="text-gray-400">Total perimeter:</span>{' '}
+                  <span className="text-white font-semibold">{formatDistanceDisplay(polygonResults.polygonPerimeter)}</span>
                 </div>
               </div>
               <div className="flex gap-2 justify-center">
@@ -404,29 +188,31 @@ export const GoogleMapsMeasureTool: React.FC<GoogleMapsMeasureToolProps> = ({
                 </button>
                 <button
                   onClick={() => {
-                    // Toggle between showing different unit preferences
-                    window.location.reload(); // Simple refresh for now
+                    clearAllMeasurements();
+                    distanceMeasurement.toggleMeasurement();
                   }}
                   className="text-xs bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded transition-colors"
                 >
-                  Refresh
+                  New Measurement
                 </button>
               </div>
             </div>
           )}
           
-          {!isPolygonClosed && measurementType === 'distance' && (
+          {!polygonResults.isPolygonClosed && (
             <div className="space-y-1">
               <div className="text-xs text-gray-300">
                 Total Distance: <span className="text-blue-400 font-mono">{distanceMeasurement.formattedDistance}</span>
               </div>
               <div className="text-xs text-gray-400">
-                Click to add points • Click near first point to close polygon
+                {distanceMeasurement.points.length >= 3 ? 
+                  'Click near the green starting point to close polygon and calculate area' :
+                  'Click to add points • Need 3+ points to close polygon'}
               </div>
               <div className="flex gap-2 mt-2">
                 {distanceMeasurement.points.length > 0 && (
                   <button
-                    onClick={distanceMeasurement.clearMeasurement}
+                    onClick={clearAllMeasurements}
                     className="text-xs bg-gray-600 hover:bg-gray-700 px-2 py-1 rounded transition-colors"
                   >
                     Clear
@@ -439,25 +225,6 @@ export const GoogleMapsMeasureTool: React.FC<GoogleMapsMeasureToolProps> = ({
                   {distanceMeasurement.useMetric ? 'Switch to Imperial' : 'Switch to Metric'}
                 </button>
               </div>
-            </div>
-          )}
-          
-          {!isPolygonClosed && measurementType === 'area' && (
-            <div className="space-y-1">
-              <div className="text-xs text-gray-300">
-                Total Area: <span className="text-green-400 font-mono">{formatArea(totalArea)}</span>
-              </div>
-              <div className="text-xs text-gray-400">
-                Click to add points • Click near first point to close polygon
-              </div>
-              {areaPoints.length > 0 && (
-                <button
-                  onClick={clearAreaMeasurement}
-                  className="text-xs bg-gray-600 hover:bg-gray-700 px-2 py-1 rounded transition-colors"
-                >
-                  Clear
-                </button>
-              )}
             </div>
           )}
         </>
