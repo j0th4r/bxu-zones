@@ -375,7 +375,7 @@ export const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(({
                     paths={path}
                 options={{
                       fillColor: getZoneColor(zoneType),
-                      fillOpacity: 0.75,
+                      fillOpacity: 0.5,
                   strokeColor: '#FFFFFF',
                       strokeOpacity: 0.8,
                       strokeWeight: 2,

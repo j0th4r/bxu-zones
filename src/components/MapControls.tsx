@@ -405,7 +405,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
           }`}
         >
           <div
-            className={`flex justify-between items-center cursor-pointer hover:bg-gray-750 transition-all duration-300 ease-in-out ${
+            className={`flex justify-between items-center cursor-pointer hover:bg-gray-750 transition-all duration-100 ease-in-out ${
               isMapToolsVisible 
                 ? 'p-4 border-b border-gray-700' 
                 : 'p-3 justify-center h-12'
@@ -413,7 +413,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
             onClick={toggleMapTools}
           >
             <h2
-              className={`font-bold text-white transition-all duration-300 ease-in-out ${
+              className={`font-bold text-white transition-all duration-100 ease-in-out ${
                 isMapToolsVisible
                   ? 'opacity-100 max-w-full'
                   : 'opacity-0 max-w-0 overflow-hidden absolute'

@@ -23,7 +23,8 @@ export const zoningAreas = [
       zoneName: 'Residential Zone - Villa Kananga',
       description: 'Single and multi-family residential development',
       address: 'Villa Kananga Subdivision, Butuan City',
-      regulations: 'Max height: 15 meters, FAR: 2.5, Lot coverage: 70%',
+      regulations:
+        'Max height: 15 meters, FAR: 2.5, Lot coverage: 70%',
       objectId: 1,
     },
   },
@@ -53,11 +54,11 @@ export const zoningAreas = [
       zoneName: 'Residential Zone - Banza District',
       description: 'Family residential area with modern amenities',
       address: 'Banza District, Butuan City',
-      regulations: 'Max height: 15 meters, FAR: 2.5, Lot coverage: 70%',
+      regulations:
+        'Max height: 15 meters, FAR: 2.5, Lot coverage: 70%',
       objectId: 2,
     },
   },
-
 
   // COMMERCIAL ZONES (C-1)
   {
@@ -86,18 +87,115 @@ export const zoningAreas = [
       zoneName: 'Commercial Zone - J.C. Aquino Avenue',
       description: 'Main commercial strip with retail and offices',
       address: 'J.C. Aquino Avenue, Butuan City',
-      regulations: 'Max height: 25 meters, FAR: 4.0, Lot coverage: 80%',
+      regulations:
+        'Max height: 25 meters, FAR: 4.0, Lot coverage: 80%',
       objectId: 3,
     },
   },
- 
+
+  // MIXED USE ZONES (MU-1)
+  {
+    type: 'Feature',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [125.53797377295838, 8.939923645691943],
+          [125.539561640645, 8.94458695586124],
+          [125.54005516708813, 8.944269004792462],
+          [125.54175032313198, 8.944247808044665],
+          [125.54526938124827, 8.944035840498854],
+          [125.54490460083377, 8.943315149919982],
+          [125.54269446067538, 8.942403686262523],
+          [125.54256571464673, 8.941661795554655],
+          [125.54299486807555, 8.940050827670488],
+          [125.53801668830124, 8.939860054685997],
+          [125.53874624913023, 8.943421133918115],
+          [125.53797377295838, 8.939923645691943],
+        ],
+      ],
+    },
+    properties: {
+      id: 'mu-001',
+      zoneType: 'MU',
+      zoneName: 'Mixed Use Zone - Golden Ribbon',
+      description: 'Main commercial strip with retail and offices',
+      address: 'Golden Ribbon, Butuan City',
+      regulations:
+        'Max height: 25 meters, FAR: 4.0, Lot coverage: 80%',
+      objectId: 4,
+    },
+  },
+
+  // OPEN SPACE ZONES
+  {
+    type: 'Feature',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [125.54427156305476, 8.957182882481796],
+          [125.54468401147786, 8.954295462091405],
+          [125.54646485685676, 8.950044177639855],
+          [125.5480972984541, 8.952243124077425],
+          [125.55838662731007, 8.954344327141046],
+          [125.55808981974691, 8.955175031980167],
+          [125.55650684607676, 8.955517086362299],
+          [125.55462706484346, 8.96045240662245],
+          [125.54427156305476, 8.957182882481796],
+        ],
+      ],
+    },
+    properties: {
+      id: 'os-001',
+      zoneType: 'OS',
+      zoneName: 'Open Space - Baan Riverside',
+      description: 'Main commercial strip with retail and offices',
+      address: 'Baan Riverside, Butuan City',
+      regulations:
+        'Max height: 25 meters, FAR: 4.0, Lot coverage: 80%',
+      objectId: 5,
+    },
+  },
+
+  // MANUFACTURING ZONES
+  {
+    type: 'Feature',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [125.53285211287657, 8.939776190895744],
+          [125.53998248827618, 8.921459456423488],
+          [125.55253172660258, 8.921149520893671],
+          [125.54996959044428, 8.932255379729302],
+          [125.54787805072324, 8.935044705083568],
+          [125.54374725977414, 8.938763772344522],
+          [125.53851841047147, 8.938195583969957],
+          [125.53825944607968, 8.939733796875855],
+          [125.5346545572776, 8.940242524788793],
+          [125.53285211287657, 8.939776190895744],
+        ],
+      ],
+    },
+    properties: {
+      id: 'm-001',
+      zoneType: 'I-1',
+      zoneName: 'Manufacturing - Pangabugan',
+      description: 'Main commercial strip with retail and offices',
+      address: 'Pangabugan, Butuan City',
+      regulations:
+        'Max height: 25 meters, FAR: 4.0, Lot coverage: 80%',
+      objectId: 6,
+    },
+  },
 ];
 
 // Check for duplicate IDs
 const idSet = new Set<string>();
 const duplicateIds: string[] = [];
 
-zoningAreas.forEach(area => {
+zoningAreas.forEach((area) => {
   const id = area.properties.id;
   if (idSet.has(id)) {
     duplicateIds.push(id);
@@ -107,13 +205,18 @@ zoningAreas.forEach(area => {
 });
 
 if (duplicateIds.length > 0) {
-  console.warn('WARNING: Duplicate IDs found in zoningAreas:', duplicateIds);
+  console.warn(
+    'WARNING: Duplicate IDs found in zoningAreas:',
+    duplicateIds
+  );
 }
 
 // Helper function to parse FAR and height from regulations
 export const parseRegulations = (regulations: string) => {
   const farMatch = regulations.match(/FAR:\s*([0-9.]+)/);
-  const heightMatch = regulations.match(/Max height:\s*(\d+)\s*meters/);
+  const heightMatch = regulations.match(
+    /Max height:\s*(\d+)\s*meters/
+  );
 
   const far = farMatch ? parseFloat(farMatch[1]) : 0;
   const heightMeters = heightMatch ? parseInt(heightMatch[1]) : 0;
@@ -134,10 +237,14 @@ export const getZoningAnalysisData = () => {
 
   const zoningDistricts = uniqueZoneTypes
     .map((zoneType) => {
-      const area = zoningAreas.find((a) => a.properties.zoneType === zoneType);
+      const area = zoningAreas.find(
+        (a) => a.properties.zoneType === zoneType
+      );
       if (!area) return null;
 
-      const regulations = parseRegulations(area.properties.regulations);
+      const regulations = parseRegulations(
+        area.properties.regulations
+      );
 
       return {
         code: area.properties.zoneType,
@@ -147,7 +254,8 @@ export const getZoningAnalysisData = () => {
       };
     })
     .filter(
-      (district): district is NonNullable<typeof district> => district !== null
+      (district): district is NonNullable<typeof district> =>
+        district !== null
     );
 
   return {
